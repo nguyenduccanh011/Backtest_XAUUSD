@@ -6,6 +6,7 @@ Also supports direct download from OANDA API
 
 import pandas as pd
 import numpy as np
+import csv
 from pathlib import Path
 from typing import Optional, Union
 from datetime import datetime, timedelta
@@ -20,6 +21,57 @@ class DataLoader:
     def __init__(self):
         """Initialize data loader."""
         pass
+    
+    def _detect_delimiter(self, file_path):
+        """
+        Auto-detect CSV delimiter using Python's csv.Sniffer.
+        
+        Args:
+            file_path: Path to CSV file
+            
+        Returns:
+            str: Detected delimiter (default: ',')
+        """
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                # Read first 2KB to detect delimiter
+                sample = f.read(2048)
+                if not sample:
+                    return ','
+                
+                sniffer = csv.Sniffer()
+                delimiter = sniffer.sniff(sample).delimiter
+                
+                # Validate delimiter is comma or semicolon (common formats)
+                if delimiter in [',', ';']:
+                    return delimiter
+                else:
+                    # If detected delimiter is not comma/semicolon, 
+                    # try to determine by checking sample
+                    comma_count = sample.count(',')
+                    semicolon_count = sample.count(';')
+                    
+                    if semicolon_count > comma_count:
+                        return ';'
+                    elif comma_count > 0:
+                        return ','
+                    else:
+                        return ','
+        except Exception:
+            # Fallback: try to detect by counting occurrences
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    sample = f.read(2048)
+                    comma_count = sample.count(',')
+                    semicolon_count = sample.count(';')
+                    
+                    if semicolon_count > comma_count:
+                        return ';'
+                    else:
+                        return ','
+            except Exception:
+                # Ultimate fallback: default to comma
+                return ','
     
     def load_csv(self, file_path, symbol="XAUUSD", source="auto"):
         """
@@ -44,8 +96,18 @@ class DataLoader:
         if not path.exists():
             raise FileNotFoundError(f"Data file not found: {file_path}")
         
-        # Load CSV
-        df = pd.read_csv(file_path)
+        # Auto-detect delimiter using csv.Sniffer
+        delimiter = self._detect_delimiter(file_path)
+        df = pd.read_csv(file_path, sep=delimiter)
+        
+        # Validate: ensure we have multiple columns (not single column due to wrong delimiter)
+        if len(df.columns) == 1:
+            # Try alternative delimiter if only 1 column detected
+            alternative_delimiter = ',' if delimiter == ';' else ';'
+            df_alt = pd.read_csv(file_path, sep=alternative_delimiter)
+            if len(df_alt.columns) > len(df.columns):
+                df = df_alt
+                delimiter = alternative_delimiter
         
         # Auto-detect format if needed
         if source == "auto":
@@ -77,18 +139,18 @@ class DataLoader:
         """
         columns_lower = [col.lower() for col in df.columns]
         
-        # Dukascopy format: "Local time,Open,High,Low,Close,Volume"
-        if 'local time' in columns_lower or 'time' in columns_lower:
+        # Dukascopy format: "Local time,Open,High,Low,Close,Volume" or "Date;Open;High;Low;Close;Volume"
+        if 'local time' in columns_lower or ('date' in columns_lower and 'time' not in columns_lower):
             if 'open' in columns_lower and 'high' in columns_lower:
                 return "dukascopy"
-        
-        # TradingView format: "time,open,high,low,close,volume"
-        if 'time' in columns_lower and 'open' in columns_lower:
-            return "tradingview"
         
         # MetaTrader format: "Date,Time,Open,High,Low,Close,Volume"
         if 'date' in columns_lower and 'time' in columns_lower:
             return "metatrader"
+        
+        # TradingView format: "time,open,high,low,close,volume"
+        if 'time' in columns_lower and 'open' in columns_lower and 'date' not in columns_lower:
+            return "tradingview"
         
         # Standard format: "timestamp,open,high,low,close,volume"
         if 'timestamp' in columns_lower:
@@ -112,9 +174,10 @@ class DataLoader:
         columns_lower = {col.lower(): col for col in df.columns}
         
         if source == "dukascopy":
-            # Dukascopy: "Local time,Open,High,Low,Close,Volume"
+            # Dukascopy: "Local time,Open,High,Low,Close,Volume" or "Date;Open;High;Low;Close;Volume"
             mapping = {
                 'local time': 'timestamp',
+                'date': 'timestamp',
                 'time': 'timestamp',
                 'open': 'open',
                 'high': 'high',
@@ -127,6 +190,10 @@ class DataLoader:
                 if old_key in columns_lower:
                     rename_dict[columns_lower[old_key]] = new_key
             df.rename(columns=rename_dict, inplace=True)
+            
+            # If timestamp column exists, parse it
+            if 'timestamp' in df.columns:
+                df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
         
         elif source == "tradingview":
             # TradingView: "time,open,high,low,close,volume"
