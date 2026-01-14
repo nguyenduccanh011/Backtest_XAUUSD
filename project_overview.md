@@ -48,9 +48,13 @@ Backtest_XAUUSD/
 ### 2. Điều kiện Entry
 - **RSI Entry**: RSI close <= 30 (Buy) hoặc >= 70 (Sell)
 - **Chọn 1 hướng**: Chỉ Buy HOẶC Sell trong 1 chu kỳ
+- **⚠️ Nhịp RSI bắt buộc**: Giữa Entry N và Entry N+1 PHẢI có nhịp RSI không đạt điều kiện
+  - SELL: RSI phải xuống < 70 (ít nhất 1 nến) giữa các entry
+  - BUY: RSI phải lên > 30 (ít nhất 1 nến) giữa các entry
 - **Logic đếm liên tục**:
-  - Nếu RSI giữa các entry không chạm < 60 và tiếp tục > 70: Tiếp tục đếm
-  - Nếu RSI về < 60: Ngắt nhịp đếm → chờ chốt
+  - Nếu RSI có nhịp không đạt điều kiện và không chạm break threshold: Tiếp tục đếm
+  - Nếu RSI về < 60 (Sell) hoặc > 40 (Buy): Ngắt nhịp đếm → chờ chốt
+  - Nếu RSI liên tục đạt điều kiện (không có nhịp): KHÔNG đếm Entry tiếp theo
 
 ### 3. Điều kiện Chốt
 - **RSI Exit**: RSI open chạm 50 (bất kể lời/lỗ)
@@ -61,10 +65,15 @@ Backtest_XAUUSD/
 - Format: JSON/YAML config hoặc CSV
 - Cho phép test nhiều kịch bản lot size
 
-### 5. Xử lý khoảng trống RSI
-- Giữa các entry có thể có khoảng RSI không đạt điều kiện
-- Hệ thống phải đợi đến khi đạt điều kiện mới vào tiếp
-- Logic ngắt nhịp khi RSI < 60
+### 5. Xử lý khoảng trống và nhịp RSI
+- **Nhịp RSI bắt buộc**: Giữa Entry N và Entry N+1 PHẢI có nhịp RSI không đạt điều kiện
+  - SELL: RSI phải xuống < 70 (ít nhất 1 nến)
+  - BUY: RSI phải lên > 30 (ít nhất 1 nến)
+- Giữa các entry có thể có nhiều nến RSI không đạt điều kiện
+- Hệ thống phải:
+  - Đảm bảo có nhịp RSI không đạt điều kiện giữa các entry
+  - Đợi đến khi RSI đạt điều kiện lại (sau nhịp) mới đếm Entry tiếp theo
+  - Logic ngắt nhịp khi RSI < 60 (Sell) hoặc > 40 (Buy)
 
 ## 🔧 Cấu hình
 

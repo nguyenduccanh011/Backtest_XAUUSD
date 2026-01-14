@@ -1,0 +1,15 @@
+# Place XAUUSD historical data files here (CSV format)
+
+## Quick Start
+
+1. Download XAUUSD historical data from one of these sources:
+   - **Dukascopy** (Recommended): https://www.dukascopy.com/swiss/english/marketwatch/historical/
+   - **TradingView**: Export from chart
+   - **HistData**: https://www.histdata.com/
+
+2. Save the CSV file as `xauusd_h1.csv` in this directory
+
+3. Ensure CSV has columns: timestamp, open, high, low, close, volume (optional)
+
+See `DATA_SOURCES.md` in project root for detailed instructions.
+

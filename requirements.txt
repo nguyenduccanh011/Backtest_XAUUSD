@@ -1,0 +1,22 @@
+# Backtest XAUUSD - DCA Strategy Requirements
+
+# Core dependencies
+pandas>=1.5.0
+numpy>=1.23.0
+
+# Optional: Backtrader (if using instead of custom engine)
+# backtrader>=1.9.78
+
+# Optional: Visualization
+# matplotlib>=3.6.0
+
+# Optional: OANDA API (for automatic data download)
+# oandapyV20>=0.6.3
+
+# Optional: Yahoo Finance (for automatic H1 data download - Recommended)
+# yfinance>=0.2.0
+
+# Development
+# pytest>=7.2.0
+# pytest-cov>=4.0.0
+

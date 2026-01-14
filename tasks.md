@@ -5,15 +5,16 @@
 ### ✅ Completed
 - [x] Project structure planning
 - [x] Requirements documentation
-
-### 🔄 In Progress
-- [ ] Setup project structure
-- [ ] Create data loader module
-- [ ] Implement RSI calculator
+- [x] Setup project structure
+- [x] Create data loader module (`src/utils/data_loader.py`)
+- [x] Implement RSI calculator (`src/strategy/rsi_handler.py`)
+- [x] Setup configuration system (`src/config/strategy_config.py`)
+- [x] Create basic backtest engine skeleton (`src/backtest/engine.py`)
+- [x] Create portfolio manager (`src/backtest/portfolio.py`)
+- [x] Create DCA strategy skeleton (`src/strategy/dca_strategy.py`)
 
 ### ⏳ Pending
-- [ ] Create basic backtest engine skeleton
-- [ ] Setup configuration system
+- [ ] **NEXT: Implement DCA Strategy logic** (see `NEXT_STEPS.md`)
 
 ---
 

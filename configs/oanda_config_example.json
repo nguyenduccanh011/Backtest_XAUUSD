@@ -1,0 +1,94 @@
+{
+  "strategy": {
+    "direction": "AUTO",
+    "rsi_period": 14,
+    "rsi_entry_threshold": {
+      "buy": 30,
+      "sell": 70
+    },
+    "rsi_break_threshold": {
+      "buy": 40,
+      "sell": 60
+    },
+    "rsi_exit": {
+      "threshold": 50,
+      "tolerance": 1,
+      "use_open": true,
+      "timeout_bars": null
+    },
+    "entry_range": {
+      "count_only": [1, 9],
+      "trade": [10, 40],
+      "wait_exit": [41, null]
+    },
+    "max_gap_bars": 100
+  },
+  "portfolio": {
+    "initial_capital": 10000,
+    "leverage": 1,
+    "max_drawdown_percent": 50,
+    "max_loss_per_cycle": 1000
+  },
+  "trading": {
+    "spread_pips": 3,
+    "slippage_pips": 1,
+    "commission_per_lot": 0,
+    "calculate_average_entry": true
+  },
+  "lot_sizes": {
+    "entry_10": 0.01,
+    "entry_11": 0.02,
+    "entry_12": 0.03,
+    "entry_13": 0.04,
+    "entry_14": 0.05,
+    "entry_15": 0.06,
+    "entry_16": 0.07,
+    "entry_17": 0.08,
+    "entry_18": 0.09,
+    "entry_19": 0.10,
+    "entry_20": 0.11,
+    "entry_21": 0.12,
+    "entry_22": 0.13,
+    "entry_23": 0.14,
+    "entry_24": 0.15,
+    "entry_25": 0.16,
+    "entry_26": 0.17,
+    "entry_27": 0.18,
+    "entry_28": 0.19,
+    "entry_29": 0.20,
+    "entry_30": 0.21,
+    "entry_31": 0.22,
+    "entry_32": 0.23,
+    "entry_33": 0.24,
+    "entry_34": 0.25,
+    "entry_35": 0.26,
+    "entry_36": 0.27,
+    "entry_37": 0.28,
+    "entry_38": 0.29,
+    "entry_39": 0.30,
+    "entry_40": 0.31
+  },
+  "data": {
+    "source": "oanda",
+    "symbol": "XAUUSD",
+    "timeframe": "H1",
+    "data_file": "data/raw/xauusd_h1.csv",
+    "oanda": {
+      "api_key_env": "OANDA_API_KEY",
+      "account_id_env": "OANDA_ACCOUNT_ID",
+      "environment": "practice",
+      "symbol": "XAU_USD",
+      "timeframe": "H1",
+      "auto_download": true,
+      "days_back": 365
+    }
+  },
+  "logging": {
+    "level": "INFO",
+    "log_file": "results/logs/backtest.log",
+    "verbose": false
+  }
+}
+
+
+

@@ -18,12 +18,20 @@
 
 ### 1.2. Logic Đếm Liên tục
 
+**⚠️ QUY TẮC BẮT BUỘC: Nhịp RSI giữa các Entry**
+
+Giữa Entry N và Entry N+1 **PHẢI có nhịp RSI không đạt điều kiện**:
+- **SELL**: RSI phải xuống < 70 (ít nhất 1 nến) giữa các entry
+- **BUY**: RSI phải lên > 30 (ít nhất 1 nến) giữa các entry
+
 **Trường hợp 1: Tiếp tục đếm**
 ```
 RSI Entry (>= 70 cho Sell) 
   → Đếm entry N
-  → RSI giảm nhưng KHÔNG chạm < 60
+  → RSI xuống < 70 (NHỊP BẮT BUỘC)
   → RSI tăng lại >= 70
+  → RSI giảm nhưng KHÔNG chạm < 60 (ngưỡng ngắt nhịp)
+  → RSI tăng lại >= 70 (có nhịp < 70 trước đó)
   → Đếm entry N+1 (tiếp tục chuỗi)
 ```
 
@@ -31,11 +39,15 @@ RSI Entry (>= 70 cho Sell)
 ```
 RSI Entry (>= 70 cho Sell)
   → Đếm entry N
-  → RSI chạm < 60
+  → RSI xuống < 70 (NHỊP BẮT BUỘC)
+  → RSI tăng lại >= 70
+  → RSI chạm < 60 (ngưỡng ngắt nhịp)
   → NGẮT NHỊP ĐẾM
   → Chờ chốt lời/lỗ khi RSI = 50
   → Sau khi chốt, reset và bắt đầu đếm lại từ 1
 ```
+
+**Lưu ý:** Nếu RSI liên tục đạt điều kiện (không có nhịp), hệ thống **KHÔNG** đếm Entry tiếp theo.
 
 ## 🎯 2. Điều kiện Entry
 
@@ -44,11 +56,16 @@ RSI Entry (>= 70 cho Sell)
 - **Sell**: RSI close >= 70
 - **Chọn 1 hướng**: Trong 1 chu kỳ chỉ chọn Buy HOẶC Sell
 
-### 2.2. Xử lý khoảng trống
+### 2.2. Xử lý khoảng trống và nhịp RSI
+- **Nhịp RSI bắt buộc**: Giữa Entry N và Entry N+1 **PHẢI có nhịp RSI không đạt điều kiện**
+  - SELL: RSI phải xuống < 70 (ít nhất 1 nến)
+  - BUY: RSI phải lên > 30 (ít nhất 1 nến)
 - Giữa các entry có thể có nhiều nến RSI không đạt điều kiện
 - Hệ thống phải:
-  - Đợi đến khi RSI đạt điều kiện mới vào tiếp
+  - **BẮT BUỘC**: Có nhịp RSI không đạt điều kiện giữa các entry
+  - Đợi đến khi RSI đạt điều kiện lại (sau nhịp) mới đếm Entry tiếp theo
   - Không bỏ qua entry nào trong sequence
+  - Nếu RSI liên tục đạt điều kiện (không có nhịp) → không đếm Entry tiếp theo
 
 ## 🎯 3. Điều kiện Chốt
 

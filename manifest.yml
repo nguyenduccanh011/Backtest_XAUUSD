@@ -1,0 +1,48 @@
+# Manifest - Backtest XAUUSD DCA Strategy
+# Tracks all artifacts beyond core source files
+
+artifacts:
+  - path: src/
+    purpose: "Source code modules (strategy, backtest, config, utils)"
+    owner: "AI"
+  
+  - path: data/
+    purpose: "Historical XAUUSD data storage (raw CSV/JSON files)"
+    owner: "AI"
+  
+  - path: configs/
+    purpose: "Configuration files (JSON/YAML) for strategy parameters"
+    owner: "AI"
+  
+  - path: results/
+    purpose: "Backtest results (reports, charts, exports)"
+    owner: "AI"
+  
+  - path: tests/
+    purpose: "Unit tests and integration tests"
+    owner: "AI"
+  
+  - path: main.py
+    purpose: "Entry point for running backtest"
+    owner: "AI"
+  
+  - path: DATA_SOURCES.md
+    purpose: "Guide for downloading XAUUSD historical data from various sources"
+    owner: "AI"
+  
+  - path: scripts/
+    purpose: "Utility scripts for data download and conversion"
+    owner: "AI"
+  
+  - path: docs/
+    purpose: "Additional documentation (API guides, etc.)"
+    owner: "AI"
+  
+  - path: test_dukascopy.py
+    purpose: "Test script for Dukascopy data loading"
+    owner: "AI"
+  
+  - path: QUICK_START_DUKASCOPY.md
+    purpose: "Quick start guide for Dukascopy integration"
+    owner: "AI"
+
