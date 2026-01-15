@@ -22,6 +22,10 @@ artifacts:
     purpose: "Unit tests and integration tests"
     owner: "AI"
   
+  - path: tests/TESTING_GUIDE.md
+    purpose: "Comprehensive testing guide with examples and best practices"
+    owner: "AI"
+  
   - path: main.py
     purpose: "Entry point for running backtest"
     owner: "AI"
@@ -44,5 +48,17 @@ artifacts:
   
   - path: QUICK_START_DUKASCOPY.md
     purpose: "Quick start guide for Dukascopy integration"
+    owner: "AI"
+
+  - path: gui.py
+    purpose: "Simple Tkinter GUI to adjust RSI thresholds and per-entry lot/money and run backtests"
+    owner: "AI"
+  
+  - path: run_tests.py
+    purpose: "Quick script to run all tests with pytest"
+    owner: "AI"
+  
+  - path: QUICK_START_TESTING.md
+    purpose: "Quick start guide for running tests"
     owner: "AI"
 
