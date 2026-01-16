@@ -24,6 +24,7 @@ from src.utils.data_loader import DataLoader
 from src.strategy.dca_strategy import DCAStrategy
 from src.backtest.portfolio import Portfolio
 from src.backtest.engine import BacktestEngine
+from src.config.strategy_config import StrategyConfig
 
 
 CONFIG_PATH = Path("configs/default_config.json")
@@ -46,32 +47,6 @@ DEFAULT_OPTIMIZE_STEP = 1.0
 PLACEHOLDER_TEXT = "Paste số tiền vào đây\n(mỗi số một dòng)\n\nLưu ý:\n- Entry 1-9: Mặc định chỉ đếm\n- Entry 10-40: Vào lệnh nếu > 0\n- Nhập 0 = chỉ đếm, không vào lệnh"
 
 
-class DictConfigWrapper:
-    """
-    Wrapper để convert dict thành config-like object với method get().
-    Reuse logic từ StrategyConfig để tránh code duplication.
-    """
-    def __init__(self, data):
-        self._data = data
-
-    def get(self, key, default=None):
-        """
-        Get config value by key (supports nested keys with dot notation).
-        Logic giống StrategyConfig.get() để đảm bảo consistency.
-        """
-        if not self._data:
-            return default
-        
-        keys = key.split(".")
-        value = self._data
-        for k in keys:
-            if isinstance(value, dict):
-                value = value.get(k)
-                if value is None:
-                    return default
-            else:
-                return default
-        return value
 
 
 def is_placeholder_text(text):
@@ -286,8 +261,8 @@ def run_backtest_with_params(
         lot_size = item.get('lot_size', 0.01)
         lot_sizes[f"entry_{entry_num}"] = float(lot_size)
 
-    # Tạo config wrapper từ dict đã chỉnh (reuse DictConfigWrapper class)
-    cfg = DictConfigWrapper(config_data)
+    # Tạo config từ dict đã chỉnh (reuse StrategyConfig để tránh code duplication)
+    cfg = StrategyConfig(config_dict=config_data)
 
     # Load data
     if not silent:

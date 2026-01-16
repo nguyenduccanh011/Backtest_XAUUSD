@@ -42,6 +42,14 @@ artifacts:
     purpose: "Additional documentation (API guides, etc.)"
     owner: "AI"
   
+  - path: docs/BACKTEST_FLOW.md
+    purpose: "Comprehensive documentation of backtest workflow and execution flow"
+    owner: "AI"
+  
+  - path: docs/BACKTEST_FLOW_SIMPLE.md
+    purpose: "Simple explanation of backtest flow for manual RSI input with entry 11+ trading"
+    owner: "AI"
+  
   - path: test_dukascopy.py
     purpose: "Test script for Dukascopy data loading"
     owner: "AI"
@@ -60,5 +68,9 @@ artifacts:
   
   - path: QUICK_START_TESTING.md
     purpose: "Quick start guide for running tests"
+    owner: "AI"
+  
+  - path: .gitattributes
+    purpose: "Git attributes to manage line endings (LF for text files)"
     owner: "AI"
 

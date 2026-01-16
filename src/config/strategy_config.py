@@ -12,15 +12,19 @@ class StrategyConfig:
     Load and validate strategy configuration.
     """
     
-    def __init__(self, config_path=None):
+    def __init__(self, config_path=None, config_dict=None):
         """
         Initialize config loader.
         
         Args:
             config_path: Path to config JSON file (optional)
+            config_dict: Config dict to use directly (optional, takes precedence over config_path)
         """
         self.config = None
-        if config_path:
+        if config_dict is not None:
+            self.config = config_dict
+            self.validate()
+        elif config_path:
             self.load(config_path)
     
     def load(self, config_path):
@@ -82,6 +86,7 @@ class StrategyConfig:
             else:
                 return default
         return value
+
 
 
 
