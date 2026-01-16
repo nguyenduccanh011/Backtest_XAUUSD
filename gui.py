@@ -4,7 +4,9 @@
 - Cho phép chỉnh:
   - RSI Buy threshold
   - RSI Sell threshold
-  - Dãy số tiền vào lệnh / lot cho từng STT lệnh (2-5, 10-40)
+  - Dãy số tiền vào lệnh / lot cho từng STT lệnh (Entry 1-40)
+    Lưu ý: Entry 1-9 mặc định chỉ đếm, Entry 10-40 vào lệnh nếu > 0
+    Ví dụ: Nhập 10 số 0 → Entry 1-10 đều chỉ đếm, không vào lệnh
 - Gọi lại backtest và hiển thị kết quả tóm tắt.
 """
 
@@ -28,6 +30,65 @@ CONFIG_PATH = Path("configs/default_config.json")
 
 # Constants
 DEFAULT_XAUUSD_PRICE = 2000.0
+FIRST_TRADE_ENTRY = 1  # Entry bắt đầu từ 1 (user nhập từ entry 1)
+MAX_TRADE_ENTRY = 40  # Entry tối đa có thể vào lệnh (Entry 10-40)
+ENTRY_COUNT_ONLY_START = 1  # Entry bắt đầu chỉ đếm
+ENTRY_COUNT_ONLY_END = 9  # Entry kết thúc chỉ đếm
+ENTRY_TRADE_START = 10  # Entry bắt đầu có thể vào lệnh
+ENTRY_TRADE_END = 40  # Entry kết thúc có thể vào lệnh
+ENTRY_WAIT_EXIT_START = 41  # Entry bắt đầu chờ exit
+
+# RSI Optimization defaults
+DEFAULT_OPTIMIZE_BUY_RANGE = (30, 35)
+DEFAULT_OPTIMIZE_SELL_RANGE = (65, 70)
+DEFAULT_OPTIMIZE_STEP = 1.0
+
+PLACEHOLDER_TEXT = "Paste số tiền vào đây\n(mỗi số một dòng)\n\nLưu ý:\n- Entry 1-9: Mặc định chỉ đếm\n- Entry 10-40: Vào lệnh nếu > 0\n- Nhập 0 = chỉ đếm, không vào lệnh"
+
+
+class DictConfigWrapper:
+    """
+    Wrapper để convert dict thành config-like object với method get().
+    Reuse logic từ StrategyConfig để tránh code duplication.
+    """
+    def __init__(self, data):
+        self._data = data
+
+    def get(self, key, default=None):
+        """
+        Get config value by key (supports nested keys with dot notation).
+        Logic giống StrategyConfig.get() để đảm bảo consistency.
+        """
+        if not self._data:
+            return default
+        
+        keys = key.split(".")
+        value = self._data
+        for k in keys:
+            if isinstance(value, dict):
+                value = value.get(k)
+                if value is None:
+                    return default
+            else:
+                return default
+        return value
+
+
+def is_placeholder_text(text):
+    """
+    Check if text is placeholder or empty.
+    
+    Args:
+        text: Text to check
+        
+    Returns:
+        bool: True if text is placeholder or empty
+    """
+    if not text or not text.strip():
+        return True
+    # Normalize whitespace for comparison
+    normalized = text.strip().replace('\r', '')
+    return normalized == PLACEHOLDER_TEXT.replace('\r', '')
 
 
 def get_xauusd_average_price(data_file_path=None):
@@ -59,9 +120,9 @@ def get_xauusd_average_price(data_file_path=None):
 def optimize_rsi_thresholds(
     lot_data: list,
     data_file_path: str = None,
-    buy_range=(30, 35),
-    sell_range=(65, 70),
-    step=1.0,
+    buy_range: tuple = None,
+    sell_range: tuple = None,
+    step: float = None,
     direction_mode: str = "AUTO",
 ):
     """
@@ -70,13 +131,22 @@ def optimize_rsi_thresholds(
     Args:
         lot_data: Danh sách lot data
         data_file_path: Đường dẫn file data
-        buy_range: Khoảng giá trị RSI cho BUY (min, max)
-        sell_range: Khoảng giá trị RSI cho SELL (min, max)
-        step: Bước nhảy giữa các giá trị (default: 1.0)
+        buy_range: Khoảng giá trị RSI cho BUY (min, max), default: DEFAULT_OPTIMIZE_BUY_RANGE
+        sell_range: Khoảng giá trị RSI cho SELL (min, max), default: DEFAULT_OPTIMIZE_SELL_RANGE
+        step: Bước nhảy giữa các giá trị, default: DEFAULT_OPTIMIZE_STEP
+        direction_mode: Hướng vào lệnh (AUTO/BUY/SELL)
     
     Returns:
         dict: Kết quả tốt nhất với keys: 'buy_threshold', 'sell_threshold', 'summary', 'all_results'
     """
+    # Sử dụng defaults nếu không được cung cấp
+    if buy_range is None:
+        buy_range = DEFAULT_OPTIMIZE_BUY_RANGE
+    if sell_range is None:
+        sell_range = DEFAULT_OPTIMIZE_SELL_RANGE
+    if step is None:
+        step = DEFAULT_OPTIMIZE_STEP
+    
     print("\n" + "=" * 60)
     print("🔍 BẮT ĐẦU TỐI ƯU NGƯỠNG RSI")
     print("=" * 60)
@@ -216,23 +286,7 @@ def run_backtest_with_params(
         lot_size = item.get('lot_size', 0.01)
         lot_sizes[f"entry_{entry_num}"] = float(lot_size)
 
-    # Tạo StrategyConfig từ dict đã chỉnh
-    class DictConfigWrapper:
-        def __init__(self, data):
-            self._data = data
-
-        def get(self, key, default=None):
-            keys = key.split(".")
-            value = self._data
-            for k in keys:
-                if isinstance(value, dict):
-                    value = value.get(k)
-                    if value is None:
-                        return default
-                else:
-                    return default
-            return value
-
+    # Tạo config wrapper từ dict đã chỉnh (reuse DictConfigWrapper class)
     cfg = DictConfigWrapper(config_data)
 
     # Load data
@@ -321,6 +375,8 @@ class BacktestGUI(tk.Tk):
         self.selected_data_file = None
         # Dữ liệu lot từ nhập thủ công
         self.lot_data = []
+        # Đường dẫn file dữ liệu số tiền đã lưu
+        self.saved_lot_data_file = None
 
         self._build_widgets()
 
@@ -435,14 +491,26 @@ class BacktestGUI(tk.Tk):
         self.rsi_info_label.grid(row=1, column=0, columnspan=6, sticky="w", pady=(2, 0))
 
         # Hàng 2: Lot / số tiền vào lệnh - chiếm phần lớn không gian
-        lots_frame = ttk.LabelFrame(main_frame, text="Dãy lot / số tiền vào lệnh theo STT lệnh")
+        lots_frame = ttk.LabelFrame(main_frame, text="Dãy lot / số tiền vào lệnh (Entry 1-9: mặc định chỉ đếm | Entry 10-40: vào lệnh nếu > 0)")
         lots_frame.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
 
-        # Header với nút Áp dụng
+        # Header với các nút: Lưu, Tải, Cập nhật, Áp dụng
         header_frame = ttk.Frame(lots_frame)
         header_frame.pack(fill="x", padx=5, pady=5)
         
-        ttk.Button(header_frame, text="💾 Áp dụng", 
+        # Nhóm nút bên trái: Lưu, Tải, Cập nhật
+        left_buttons = ttk.Frame(header_frame)
+        left_buttons.pack(side="left", padx=5)
+        
+        ttk.Button(left_buttons, text="💾 Lưu", 
+                   command=self.on_save_lot_data).pack(side="left", padx=2)
+        ttk.Button(left_buttons, text="📂 Tải", 
+                   command=self.on_load_lot_data).pack(side="left", padx=2)
+        ttk.Button(left_buttons, text="🔄 Cập nhật", 
+                   command=self.on_update_lot_data).pack(side="left", padx=2)
+        
+        # Nút Áp dụng bên phải
+        ttk.Button(header_frame, text="✅ Áp dụng", 
                    command=self.on_apply_manual_input).pack(side="right", padx=5)
         
         # Frame chứa 3 cột ngang: Số tiền (nhập) | Số tiền vào lệnh | Lot size
@@ -481,7 +549,7 @@ class BacktestGUI(tk.Tk):
         self.manual_input_text.config(yscrollcommand=scrollbar_text.set)
         
         # Thêm placeholder
-        self.manual_input_text.insert("1.0", "Paste số tiền vào đây\n(mỗi số một dòng)")
+        self.manual_input_text.insert("1.0", PLACEHOLDER_TEXT)
         self.manual_input_text.config(foreground="gray")
         
         def _center_manual_input_text(event=None):
@@ -493,14 +561,15 @@ class BacktestGUI(tk.Tk):
                 pass
         
         def on_input_focus_in(event):
-            if self.manual_input_text.get("1.0", "end-1c").strip() in ["Paste số tiền vào đây\n(mỗi số một dòng)", "Paste số tiền vào đây", ""]:
+            content = self.manual_input_text.get("1.0", "end-1c").strip()
+            if is_placeholder_text(content):
                 self.manual_input_text.delete("1.0", tk.END)
                 self.manual_input_text.config(foreground="black")
             _center_manual_input_text()
         
         def on_input_focus_out(event):
             if not self.manual_input_text.get("1.0", "end-1c").strip():
-                self.manual_input_text.insert("1.0", "Paste số tiền vào đây\n(mỗi số một dòng)")
+                self.manual_input_text.insert("1.0", PLACEHOLDER_TEXT)
                 self.manual_input_text.config(foreground="gray")
             _center_manual_input_text()
         
@@ -633,75 +702,151 @@ class BacktestGUI(tk.Tk):
                 foreground="green",
             )
 
+    def _parse_money_input(self, content: str) -> list[float]:
+        """
+        Parse chuỗi số tiền từ text input.
+        
+        Args:
+            content: Nội dung text từ Text widget
+            
+        Returns:
+            list[float]: Danh sách số tiền đã parse
+        """
+        money_values = []
+        
+        # Chuẩn hóa: thay thế tất cả các ký tự phân cách (xuống dòng, tab, dấu chấm phẩy) bằng dấu phẩy
+        normalized = re.sub(r'[\n\r\t;]+', ',', content)
+        # Thay thế nhiều khoảng trắng hoặc dấu phẩy liên tiếp bằng một dấu phẩy
+        normalized = re.sub(r'[,\s]+', ',', normalized)
+        # Loại bỏ dấu phẩy ở đầu và cuối
+        normalized = normalized.strip(',').strip()
+        
+        if not normalized:
+            return []
+        
+        # Tách theo dấu phẩy
+        parts = normalized.split(',')
+        
+        for part in parts:
+            part = part.strip()
+            if not part:
+                continue
+            
+            # Loại bỏ ký tự đặc biệt (như dấu phẩy trong số, khoảng trắng)
+            part_clean = part.replace(',', '').replace(' ', '').replace('\t', '').replace('\n', '').replace('\r', '')
+            
+            if not part_clean:
+                continue
+            
+            try:
+                money = float(part_clean)
+                if money < 0:
+                    money = 0.0
+                money_values.append(money)
+            except ValueError:
+                # Bỏ qua giá trị không hợp lệ, không báo lỗi để không gián đoạn
+                print(f"⚠️ Bỏ qua giá trị không hợp lệ: '{part}'")
+                continue
+        
+        return money_values
+    
+    def _calculate_lot_size(self, entry_number: int, money: float, xauusd_price: float) -> float:
+        """
+        Tính lot size cho entry dựa trên entry number và số tiền.
+        
+        Args:
+            entry_number: Số thứ tự entry
+            money: Số tiền (USD)
+            xauusd_price: Giá XAUUSD trung bình
+            
+        Returns:
+            float: Lot size (0.0 nếu chỉ đếm, không vào lệnh)
+        """
+        # Entry 1-9: luôn set lot_size = 0 (mặc định chỉ đếm, không vào lệnh)
+        if entry_number < ENTRY_TRADE_START:
+            return 0.0
+        # Entry 10-40: vào lệnh nếu money > 0, chỉ đếm nếu money = 0
+        elif entry_number <= ENTRY_TRADE_END:
+            if money > 0 and xauusd_price and xauusd_price > 0:
+                return money / (xauusd_price * 100)
+            else:
+                return 0.0  # money = 0 → chỉ đếm, không vào lệnh
+        # Entry 41+: luôn set lot_size = 0 (chỉ đếm, không vào lệnh)
+        else:
+            return 0.0
+    
+    def _update_treeviews(self, lot_data: list):
+        """
+        Cập nhật 2 Treeview (money và lot) với dữ liệu mới.
+        
+        Args:
+            lot_data: Danh sách lot data với keys: entry_number, money_amount, lot_size
+        """
+        # Xóa dữ liệu cũ
+        for item in self.manual_money_tree.get_children():
+            self.manual_money_tree.delete(item)
+        for item in self.manual_lot_tree.get_children():
+            self.manual_lot_tree.delete(item)
+        
+        # Thêm dữ liệu mới
+        for item in lot_data:
+            entry_number = item['entry_number']
+            money = item['money_amount']
+            lot_size = item['lot_size']
+            self.manual_money_tree.insert("", "end", values=(f"Entry {entry_number}", f"${money:,.0f}"))
+            self.manual_lot_tree.insert("", "end", values=(f"Entry {entry_number}", f"{lot_size:.5f}"))
+    
+    def _validate_entry_count(self, money_values: list) -> bool:
+        """
+        Validate số lượng entry và hiển thị cảnh báo nếu vượt quá MAX_TRADE_ENTRY.
+        
+        Args:
+            money_values: Danh sách số tiền đã nhập
+            
+        Returns:
+            bool: True nếu hợp lệ, False nếu có cảnh báo
+        """
+        if len(money_values) == 0:
+            return False
+        
+        last_entry = FIRST_TRADE_ENTRY + len(money_values) - 1
+        if last_entry > MAX_TRADE_ENTRY:
+            excess_entries = last_entry - MAX_TRADE_ENTRY
+            messagebox.showwarning(
+                "Cảnh báo",
+                f"Bạn đã nhập {len(money_values)} số tiền, map vào Entry {FIRST_TRADE_ENTRY}-{last_entry}.\n\n"
+                f"⚠️ Entry {MAX_TRADE_ENTRY + 1}-{last_entry} ({excess_entries} entry) sẽ KHÔNG vào lệnh thực tế\n"
+                f"(Chỉ Entry {ENTRY_TRADE_START}-{ENTRY_TRADE_END} mới vào lệnh, Entry {ENTRY_WAIT_EXIT_START}+ chỉ đếm và chờ exit).\n\n"
+                f"Khuyến nghị: Chỉ nhập tối đa {MAX_TRADE_ENTRY} số tiền."
+            )
+        return True
+    
     def on_apply_manual_input(self):
         """Xử lý khi nhấn nút Áp dụng cho nhập thủ công"""
         # Lấy nội dung từ Text widget (cột nhập số tiền)
         content = self.manual_input_text.get("1.0", "end-1c").strip()
         
         # Bỏ qua placeholder text
-        if not content or content in ["Paste số tiền vào đây\n(mỗi số một dòng)", "Paste số tiền vào đây", ""]:
-            # Thông báo không chặn giống chọn file data
+        if is_placeholder_text(content):
             self.status_label.config(
                 text="⚠️ Vui lòng nhập số tiền vào lệnh trước khi bấm 'Áp dụng'.",
                 foreground="red",
             )
             return
         
-        # Xóa dữ liệu cũ trong 2 Treeview (cột 2 và 3)
-        for item in self.manual_money_tree.get_children():
-            self.manual_money_tree.delete(item)
-        for item in self.manual_lot_tree.get_children():
-            self.manual_lot_tree.delete(item)
-        
-        # Parse chuỗi số tiền - hỗ trợ nhiều định dạng (dấu phẩy, xuống dòng, tab, v.v.)
         try:
-            money_values = []
+            # Parse số tiền từ input
+            money_values = self._parse_money_input(content)
             
-            # Chuẩn hóa: thay thế tất cả các ký tự phân cách (xuống dòng, tab, dấu chấm phẩy) bằng dấu phẩy
-            normalized = re.sub(r'[\n\r\t;]+', ',', content)
-            # Thay thế nhiều khoảng trắng hoặc dấu phẩy liên tiếp bằng một dấu phẩy
-            normalized = re.sub(r'[,\s]+', ',', normalized)
-            # Loại bỏ dấu phẩy ở đầu và cuối
-            normalized = normalized.strip(',').strip()
-            
-            if not normalized:
-                # Không có dữ liệu hợp lệ để xử lý
+            if not money_values:
                 self.status_label.config(
                     text="⚠️ Không có dữ liệu số tiền để xử lý. Kiểm tra lại nội dung đã paste.",
                     foreground="red",
                 )
                 return
             
-            # Tách theo dấu phẩy
-            parts = normalized.split(',')
-            
-            for part in parts:
-                part = part.strip()
-                if not part:
-                    continue
-                
-                # Loại bỏ ký tự đặc biệt (như dấu phẩy trong số, khoảng trắng)
-                part_clean = part.replace(',', '').replace(' ', '').replace('\t', '').replace('\n', '').replace('\r', '')
-                
-                if not part_clean:
-                    continue
-                
-                try:
-                    money = float(part_clean)
-                    if money < 0:
-                        money = 0.0
-                    money_values.append(money)
-                except ValueError:
-                    # Bỏ qua giá trị không hợp lệ, không báo lỗi để không gián đoạn
-                    print(f"⚠️ Bỏ qua giá trị không hợp lệ: '{part}'")
-                    continue
-            
-            if not money_values:
-                # Không có giá trị số hợp lệ
-                self.status_label.config(
-                    text="⚠️ Không tìm thấy giá trị số hợp lệ. Mỗi số một dòng hoặc cách nhau bằng dấu phẩy.",
-                    foreground="red",
-                )
+            # Validate số lượng entry
+            if not self._validate_entry_count(money_values):
                 return
             
             # Lấy giá XAUUSD trung bình từ file data nếu có
@@ -710,30 +855,37 @@ class BacktestGUI(tk.Tk):
             # Tạo dữ liệu lot
             self.lot_data = []
             for idx, money in enumerate(money_values):
-                entry_number = idx + 2  # Bắt đầu từ entry_2
-                # Bảo vệ khỏi division by zero
-                if money > 0 and xauusd_price and xauusd_price > 0:
-                    lot_size = money / (xauusd_price * 100)
-                else:
-                    lot_size = 0.0
+                entry_number = idx + FIRST_TRADE_ENTRY
+                lot_size = self._calculate_lot_size(entry_number, money, xauusd_price)
                 
                 self.lot_data.append({
                     'entry_number': entry_number,
                     'money_amount': money,
                     'lot_size': round(lot_size, 5)
                 })
-                
-                # Hiển thị trong 2 Treeview (cột 2 và 3)
-                # Cột 1 giữ nguyên Text widget để người dùng có thể chỉnh sửa
-                self.manual_money_tree.insert("", "end", values=(f"Entry {entry_number}", f"${money:,.0f}"))
-                self.manual_lot_tree.insert("", "end", values=(f"Entry {entry_number}", f"{lot_size:.5f}"))
+            
+            # Cập nhật UI
+            self._update_treeviews(self.lot_data)
             
             print(f"✅ Đã parse {len(money_values)} giá trị từ dữ liệu nhập thủ công")
-            # Thông báo không chặn, sẽ được thay khi bấm "Chọn file data" hoặc "Chạy backtest"
-            # Số entry hiển thị tùy thuộc vào số lượng entry đã áp dụng thực tế
+            
+            # Đếm số entry sẽ vào lệnh thực tế (Entry 10-40 với money > 0)
+            trade_entries = [
+                item for item in self.lot_data 
+                if ENTRY_TRADE_START <= item['entry_number'] <= ENTRY_TRADE_END 
+                and item['lot_size'] > 0
+            ]
+            count_only_entries = len(self.lot_data) - len(trade_entries)
+            
+            # Thông báo không chặn
             applied_entries = len(self.lot_data)
+            entry_range = f"Entry {FIRST_TRADE_ENTRY}-{self.lot_data[-1]['entry_number']}" if self.lot_data else "N/A"
+            status_msg = f"✅ Đã áp dụng {applied_entries} entry ({entry_range})"
+            if count_only_entries > 0:
+                status_msg += f" | {count_only_entries} entry chỉ đếm, {len(trade_entries)} entry vào lệnh"
+            status_msg += " | Hãy chọn file data."
             self.status_label.config(
-                text=f"✅ Đã áp dụng {applied_entries} entry từ dữ liệu nhập thủ công, Hãy chọn file data.",
+                text=status_msg,
                 foreground="green",
             )
             
@@ -744,6 +896,138 @@ class BacktestGUI(tk.Tk):
         except Exception as e:
             # Lỗi không lường trước
             messagebox.showerror("Lỗi", f"Lỗi không xác định khi xử lý dữ liệu: {e}")
+            traceback.print_exc()
+
+    def on_save_lot_data(self):
+        """Lưu dữ liệu số tiền vào file JSON"""
+        if not self.lot_data:
+            messagebox.showwarning("Cảnh báo", "Chưa có dữ liệu để lưu. Vui lòng nhập số tiền và nhấn 'Áp dụng' trước.")
+            return
+        
+        # Chọn file để lưu
+        file_path = filedialog.asksaveasfilename(
+            title="Lưu dữ liệu số tiền",
+            defaultextension=".json",
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
+            initialdir="data" if Path("data").exists() else ".",
+            initialfile="lot_data.json"
+        )
+        
+        if not file_path:
+            return
+        
+        try:
+            # Chuẩn bị dữ liệu để lưu (chỉ lưu money_amount, lot_size sẽ tính lại khi tải)
+            save_data = {
+                "money_amounts": [item['money_amount'] for item in self.lot_data],
+                "entry_numbers": [item['entry_number'] for item in self.lot_data],
+                "xauusd_price": get_xauusd_average_price(self.selected_data_file)
+            }
+            
+            with open(file_path, "w", encoding="utf-8") as f:
+                json.dump(save_data, f, indent=2, ensure_ascii=False)
+            
+            self.saved_lot_data_file = file_path
+            self.status_label.config(
+                text=f"✅ Đã lưu dữ liệu vào: {Path(file_path).name}",
+                foreground="green",
+            )
+            messagebox.showinfo("Thành công", f"Đã lưu {len(self.lot_data)} entry vào file:\n{file_path}")
+            
+        except Exception as e:
+            messagebox.showerror("Lỗi", f"Không thể lưu file: {e}")
+            traceback.print_exc()
+
+    def on_load_lot_data(self):
+        """Tải dữ liệu số tiền từ file JSON"""
+        file_path = filedialog.askopenfilename(
+            title="Tải dữ liệu số tiền",
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
+            initialdir="data" if Path("data").exists() else "."
+        )
+        
+        if not file_path:
+            return
+        
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                save_data = json.load(f)
+            
+            # Kiểm tra định dạng
+            if "money_amounts" not in save_data:
+                messagebox.showerror("Lỗi", "File không đúng định dạng. Thiếu 'money_amounts'.")
+                return
+            
+            money_amounts = save_data.get("money_amounts", [])
+            if not money_amounts:
+                messagebox.showwarning("Cảnh báo", "File không chứa dữ liệu số tiền.")
+                return
+            
+            # Lấy giá XAUUSD (ưu tiên từ file đã lưu, sau đó từ file data hiện tại)
+            xauusd_price = save_data.get("xauusd_price")
+            if not xauusd_price:
+                xauusd_price = get_xauusd_average_price(self.selected_data_file)
+            
+            # Tạo chuỗi số tiền để hiển thị trong Text widget
+            money_text = "\n".join([str(int(money)) if money == int(money) else str(money) for money in money_amounts])
+            
+            # Cập nhật Text widget
+            self.manual_input_text.delete("1.0", tk.END)
+            self.manual_input_text.insert("1.0", money_text)
+            self.manual_input_text.config(foreground="black")
+            
+            # Tự động áp dụng dữ liệu đã tải
+            self.on_apply_manual_input()
+            
+            self.saved_lot_data_file = file_path
+            self.status_label.config(
+                text=f"✅ Đã tải {len(money_amounts)} entry từ: {Path(file_path).name}",
+                foreground="green",
+            )
+            messagebox.showinfo("Thành công", f"Đã tải {len(money_amounts)} entry từ file:\n{file_path}")
+            
+        except json.JSONDecodeError as e:
+            messagebox.showerror("Lỗi", f"File JSON không hợp lệ: {e}")
+        except Exception as e:
+            messagebox.showerror("Lỗi", f"Không thể tải file: {e}")
+            traceback.print_exc()
+
+    def on_update_lot_data(self):
+        """Cập nhật dữ liệu đã lưu (lưu lại với file đã lưu trước đó)"""
+        if not self.saved_lot_data_file:
+            # Nếu chưa có file đã lưu, hỏi người dùng có muốn lưu mới không
+            response = messagebox.askyesno(
+                "Chưa có file đã lưu",
+                "Chưa có file dữ liệu đã lưu trước đó.\n\nBạn có muốn lưu dữ liệu hiện tại không?"
+            )
+            if response:
+                self.on_save_lot_data()
+            return
+        
+        if not self.lot_data:
+            messagebox.showwarning("Cảnh báo", "Chưa có dữ liệu để cập nhật. Vui lòng nhập số tiền và nhấn 'Áp dụng' trước.")
+            return
+        
+        try:
+            # Chuẩn bị dữ liệu để lưu
+            save_data = {
+                "money_amounts": [item['money_amount'] for item in self.lot_data],
+                "entry_numbers": [item['entry_number'] for item in self.lot_data],
+                "xauusd_price": get_xauusd_average_price(self.selected_data_file)
+            }
+            
+            # Lưu lại vào file đã lưu trước đó
+            with open(self.saved_lot_data_file, "w", encoding="utf-8") as f:
+                json.dump(save_data, f, indent=2, ensure_ascii=False)
+            
+            self.status_label.config(
+                text=f"✅ Đã cập nhật dữ liệu vào: {Path(self.saved_lot_data_file).name}",
+                foreground="green",
+            )
+            messagebox.showinfo("Thành công", f"Đã cập nhật {len(self.lot_data)} entry vào file:\n{self.saved_lot_data_file}")
+            
+        except Exception as e:
+            messagebox.showerror("Lỗi", f"Không thể cập nhật file: {e}")
             traceback.print_exc()
 
     def on_rsi_mode_change(self):
@@ -766,7 +1050,7 @@ class BacktestGUI(tk.Tk):
             self.on_direction_change()
 
     def on_direction_change(self):
-        """Cập nhật label mô tả khi đổi hướng BUY/SELL."""
+        """Cập nhật label mô tả và giá trị mặc định khi đổi hướng BUY/SELL."""
         direction = (self.direction_var.get() or "BUY").upper()
         if direction == "BUY":
             self.rsi_entry_label.config(text="RSI vào lệnh (BUY):")
@@ -774,18 +1058,33 @@ class BacktestGUI(tk.Tk):
                 text="MUA: vào khi RSI ≤ mốc 1, chốt khi RSI ≈ mốc 2, dừng đếm khi RSI < mốc 3",
                 foreground="gray",
             )
+            # Giá trị mặc định cho BUY
+            self.rsi_entry_var.set("35")
+            self.rsi_exit_var.set("50")
+            self.rsi_break_var.set("40")
         else:
             self.rsi_entry_label.config(text="RSI vào lệnh (SELL):")
             self.rsi_info_label.config(
                 text="BÁN: vào khi RSI ≥ mốc 1, chốt khi RSI ≈ mốc 2, dừng đếm khi RSI > mốc 3",
                 foreground="gray",
             )
+            # Giá trị mặc định cho SELL
+            self.rsi_entry_var.set("70")
+            self.rsi_exit_var.set("50")
+            self.rsi_break_var.set("60")
 
     def on_run_backtest(self):
         """Xử lý khi nhấn nút chạy backtest - chạy trên thread riêng"""
         # Kiểm tra đã nhập và áp dụng chưa
         if not self.lot_data:
-            messagebox.showerror("Lỗi", "Vui lòng nhập số tiền và nhấn 'Áp dụng' trước.")
+            messagebox.showerror(
+                "Lỗi", 
+                "Vui lòng nhập số tiền và nhấn 'Áp dụng' trước.\n\n"
+                "⚠️ Lưu ý:\n"
+                "- Entry 1-9: Mặc định chỉ đếm, không vào lệnh\n"
+                "- Entry 10-40: Vào lệnh nếu nhập số tiền > 0\n"
+                "- Nhập 0 = chỉ đếm, không vào lệnh"
+            )
             return
 
         # Kiểm tra file data
@@ -828,27 +1127,36 @@ class BacktestGUI(tk.Tk):
         
         self.update()  # Force update UI
 
+        # Copy data để tránh race condition khi user thay đổi trong lúc thread đang chạy
+        lot_data_copy = self.lot_data.copy() if self.lot_data else []
+        data_file_copy = self.selected_data_file
+        rsi_auto_mode_copy = self.rsi_auto_mode.get()
+        direction_mode_copy = self.direction_var.get()
+        entry_th_copy = self.rsi_entry_var.get()
+        exit_th_copy = self.rsi_exit_var.get()
+        break_th_copy = self.rsi_break_var.get()
+        
         # Chạy backtest trên thread riêng
         def run_in_thread():
             try:
-                if self.rsi_auto_mode.get():
-                    # Chế độ tự động tối ưu
+                if rsi_auto_mode_copy:
+                    # Chế độ tự động tối ưu - sử dụng constants
                     result = optimize_rsi_thresholds(
-                        self.lot_data, 
-                        self.selected_data_file,
-                        buy_range=(30, 35),
-                        sell_range=(65, 70),
-                        step=1.0,
-                        direction_mode=self.direction_var.get(),
+                        lot_data_copy, 
+                        data_file_copy,
+                        buy_range=DEFAULT_OPTIMIZE_BUY_RANGE,
+                        sell_range=DEFAULT_OPTIMIZE_SELL_RANGE,
+                        step=DEFAULT_OPTIMIZE_STEP,
+                        direction_mode=direction_mode_copy,
                     )
                     # Update UI trên main thread với kết quả tối ưu
                     self.after(0, self._on_optimize_complete, result, None)
                 else:
                     # Chế độ thủ công
-                    entry_th = float(self.rsi_entry_var.get())
-                    exit_th = float(self.rsi_exit_var.get())
-                    break_th = float(self.rsi_break_var.get())
-                    direction = (self.direction_var.get() or "BUY").upper()
+                    entry_th = float(entry_th_copy)
+                    exit_th = float(exit_th_copy)
+                    break_th = float(break_th_copy)
+                    direction = (direction_mode_copy or "BUY").upper()
                     # Chỉ cần ngưỡng entry tương ứng với hướng, ngưỡng còn lại có thể dùng giá trị mặc định
                     if direction == "BUY":
                         buy_th = entry_th
@@ -859,8 +1167,8 @@ class BacktestGUI(tk.Tk):
                     summary = run_backtest_with_params(
                         buy_th,
                         sell_th,
-                        self.lot_data,
-                        self.selected_data_file,
+                        lot_data_copy,
+                        data_file_copy,
                         direction_mode=direction,
                         entry_rsi=entry_th,
                         exit_rsi=exit_th,
