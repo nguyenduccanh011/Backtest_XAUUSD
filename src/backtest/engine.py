@@ -87,22 +87,35 @@ class BacktestEngine:
             current_price = row['close']
 
             # ===== EXIT CHECK =====
+            # EXIT check phải trước BREAK để ưu tiên chốt lệnh khi RSI ≈ 50
             rsi_for_exit = rsi_open if use_open_for_exit else rsi_close
             if self.strategy.should_exit(rsi_for_exit):
+                print(f"🚪 EXIT tại Entry #{self.strategy.current_entry}: RSI={rsi_for_exit:.2f} ≈ {self.strategy.rsi_exit_threshold} | Giá: ${current_price:.2f}")
                 if self.portfolio.open_positions:
                     self.portfolio.close_all_positions(current_price, timestamp)
-                    self.events.append({
-                        'type': 'exit',
-                        'timestamp': timestamp,
-                        'price': current_price,
-                        'rsi': rsi_for_exit,
-                        'entry_count': self.strategy.current_entry
-                    })
-                    self.strategy.reset()
+                    print(f"   ✅ Đã đóng tất cả lệnh, reset strategy, bắt đầu chu kỳ mới")
+                self.events.append({
+                    'type': 'exit',
+                    'timestamp': timestamp,
+                    'price': current_price,
+                    'rsi': rsi_for_exit,
+                    'entry_count': self.strategy.current_entry,
+                    'was_break': self.strategy.is_break  # Ghi nhận nếu exit sau break
+                })
+                self.strategy.reset()
 
             # ===== BREAK CHECK =====
-                      # ===== BREAK CHECK =====
+            # Break check phải trước ENTRY để block entry ngay khi break
             if self.strategy.check_break(rsi_close):
+                break_threshold = self.strategy.rsi_break_sell if self.strategy.direction == "SELL" else self.strategy.rsi_break_buy
+                min_entries = self.strategy.min_entries_before_break
+                trade_start_entry = self.strategy.entry_trade[0]
+                print(f"🛑 BREAK tại Entry #{self.strategy.current_entry}: RSI={rsi_close:.2f} | Ngưỡng break: {break_threshold} | Giá: ${current_price:.2f}")
+                print(f"   ⚠️ Không vào lệnh tiếp, chờ EXIT để chốt lệnh...")
+                if self.strategy.current_entry < trade_start_entry:
+                    print(f"   ⚠️ Break xảy ra sớm (Entry #{self.strategy.current_entry} < {trade_start_entry}) - không thể đạt Entry #{trade_start_entry} để vào lệnh thực tế!")
+                else:
+                    print(f"   ✅ Break xảy ra sau Entry #{self.strategy.current_entry} (đã cho phép vào lệnh từ Entry #{trade_start_entry})")
                 self.events.append({
                     'type': 'break',
                     'timestamp': timestamp,
@@ -111,12 +124,18 @@ class BacktestEngine:
                     'entry_count': self.strategy.current_entry,
                     'direction': self.strategy.direction
                 })
-
-                # RESET strategy after break to allow new cycles
-                self.strategy.reset()
+                # KHÔNG reset ngay - chờ EXIT để chốt lệnh và reset
 
             # ===== ENTRY CHECK =====
             should_enter, should_trade, direction = self.strategy.should_enter(rsi_close)
+            
+            # Debug: Log khi không thể enter (rhythm requirement)
+            if not should_enter and self.strategy.direction is not None:
+                # Chỉ log khi đã có direction (không log khi chưa chọn hướng)
+                if self.strategy.waiting_for_rhythm and not self.strategy.has_rhythm:
+                    if self.strategy.current_entry <= 9:  # Chỉ log cho entry 1-9 để không spam
+                        print(f"⏸️  Entry #{self.strategy.current_entry} chờ rhythm: RSI={rsi_close:.2f} | "
+                              f"Cần RSI {'<' if direction == 'SELL' else '>'} {self.strategy.rsi_entry_sell if direction == 'SELL' else self.strategy.rsi_entry_buy}")
 
             if should_enter:
                 entry_number = self.strategy.current_entry
@@ -156,6 +175,12 @@ class BacktestEngine:
                     'is_first_entry': is_first_entry  # Đánh dấu entry đầu tiên
                 })
 
+                # Log tất cả entries để debug
+                if entry_number <= 9:
+                    print(f"📊 Entry #{entry_number}: {direction} | Giá: ${current_price:.2f} | RSI: {rsi_close:.2f} | (Chỉ đếm, không vào lệnh)")
+                elif entry_number >= 10 and entry_number <= 40:
+                    print(f"📈 Entry #{entry_number}: {direction} | Giá: ${current_price:.2f} | RSI: {rsi_close:.2f} | should_trade={should_trade}")
+
                 if should_trade:
                     lot_size = self.strategy.get_lot_size(entry_number)
                     if lot_size > 0:
@@ -168,6 +193,9 @@ class BacktestEngine:
                             lot_size=lot_size,
                             timestamp=timestamp
                         )
+                    else:
+                        # Debug: Tại sao lot_size = 0?
+                        print(f"⚠️ Entry #{entry_number} should_trade=True nhưng lot_size=0 (kiểm tra config lot_sizes.entry_{entry_number})")
 
             # ===== EQUITY TRACKING =====
             equity = self.portfolio.get_current_equity(current_price)

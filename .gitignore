@@ -55,3 +55,19 @@ configs/oanda_credentials.json
 .DS_Store
 Thumbs.db
 
+# Temporary files
+nul
+tatus
+t.yml
+t_*.py
+*_temp.*
+*.tmp
+
+# Test output files
+test_*.py
+*_test_output.*
+
+# Excel test files (if not needed in repo)
+*.xlsx
+*.xls
+!data/raw/*.xlsx  # Keep data files if needed

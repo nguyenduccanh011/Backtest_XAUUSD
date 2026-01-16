@@ -16,9 +16,10 @@
       "use_open": true,
       "timeout_bars": null
     },
+    "min_entries_before_break": 9,
     "entry_range": {
-      "count_only": [1, 10],
-      "trade": [11, 40],
+      "count_only": [1, 9],
+      "trade": [10, 40],
       "wait_exit": [41, null]
     },
     "max_gap_bars": 100
@@ -36,8 +37,8 @@
     "calculate_average_entry": true
   },
   "lot_sizes": {
-    "entry_11": 0.01,
-    "entry_12": 0.02,
+    "entry_10": 0.01,
+    "entry_11": 0.02,
     "entry_12": 0.03,
     "entry_13": 0.04,
     "entry_14": 0.05,

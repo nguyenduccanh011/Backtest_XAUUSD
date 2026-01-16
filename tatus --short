@@ -1,0 +1,41 @@
+warning: in the working copy of '.gitignore', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'scripts/__init__.py', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'scripts/auto_download_data.py', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'scripts/download_oanda.py', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'scripts/download_sample_data.py', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'scripts/download_yahoo_finance.py', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'src/__init__.py', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'src/backtest/__init__.py', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'src/config/__init__.py', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'src/config/strategy_config.py', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'src/strategy/__init__.py', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'src/strategy/rsi_handler.py', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'src/utils/__init__.py', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'src/utils/auto_data_downloader.py', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'src/utils/calculator.py', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'tests/__init__.py', CRLF will be replaced by LF the next time Git touches it
+.gitignore
+configs/default_config.json
+configs/oanda_config_example.json
+manifest.yml
+results/charts/.gitkeep
+results/logs/.gitkeep
+results/reports/.gitkeep
+scripts/__init__.py
+scripts/auto_download_data.py
+scripts/download_oanda.py
+scripts/download_sample_data.py
+scripts/download_yahoo_finance.py
+src/__init__.py
+src/backtest/__init__.py
+src/backtest/engine.py
+src/config/__init__.py
+src/config/strategy_config.py
+src/strategy/__init__.py
+src/strategy/dca_strategy.py
+src/strategy/rsi_handler.py
+src/utils/__init__.py
+src/utils/auto_data_downloader.py
+src/utils/calculator.py
+test_load_file.py
+tests/__init__.py
