@@ -73,4 +73,12 @@ artifacts:
   - path: .gitattributes
     purpose: "Git attributes to manage line endings (LF for text files)"
     owner: "AI"
+  
+  - path: src/utils/chart_visualizer.py
+    purpose: "Chart visualization module for candlestick + RSI + entry/exit points using mplfinance"
+    owner: "AI"
+  
+  - path: examples/plot_backtest_chart.py
+    purpose: "Example script demonstrating how to plot backtest results with candlestick, RSI, and entry points"
+    owner: "AI"
 

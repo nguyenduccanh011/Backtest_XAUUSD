@@ -65,9 +65,10 @@ class BacktestEngine:
         Returns:
             dict: Backtest results
         """
-        # Reset strategy and portfolio
+        # Reset strategy, portfolio, and events
         self.strategy.reset()
         self.portfolio = type(self.portfolio)(self.portfolio.initial_capital)
+        self.events = []  # Reset events để tránh tích lũy khi chạy nhiều lần
 
         # Get config values
         use_open_for_exit = (

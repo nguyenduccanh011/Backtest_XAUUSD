@@ -8,8 +8,9 @@ openpyxl>=3.0.0  # Required for reading Excel files in GUI
 # Optional: Backtrader (if using instead of custom engine)
 # backtrader>=1.9.78
 
-# Optional: Visualization
-# matplotlib>=3.6.0
+# Visualization
+matplotlib>=3.6.0
+mplfinance>=0.12.0
 
 # Optional: OANDA API (for automatic data download)
 # oandapyV20>=0.6.3

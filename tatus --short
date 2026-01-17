@@ -1,3 +1,4 @@
+warning: in the working copy of '.gitattributes', LF will be replaced by CRLF the next time Git touches it
 warning: in the working copy of '.gitignore', LF will be replaced by CRLF the next time Git touches it
 warning: in the working copy of 'scripts/__init__.py', CRLF will be replaced by LF the next time Git touches it
 warning: in the working copy of 'scripts/auto_download_data.py', CRLF will be replaced by LF the next time Git touches it
@@ -7,17 +8,20 @@ warning: in the working copy of 'scripts/download_yahoo_finance.py', CRLF will b
 warning: in the working copy of 'src/__init__.py', CRLF will be replaced by LF the next time Git touches it
 warning: in the working copy of 'src/backtest/__init__.py', CRLF will be replaced by LF the next time Git touches it
 warning: in the working copy of 'src/config/__init__.py', CRLF will be replaced by LF the next time Git touches it
-warning: in the working copy of 'src/config/strategy_config.py', CRLF will be replaced by LF the next time Git touches it
 warning: in the working copy of 'src/strategy/__init__.py', CRLF will be replaced by LF the next time Git touches it
 warning: in the working copy of 'src/strategy/rsi_handler.py', CRLF will be replaced by LF the next time Git touches it
 warning: in the working copy of 'src/utils/__init__.py', CRLF will be replaced by LF the next time Git touches it
 warning: in the working copy of 'src/utils/auto_data_downloader.py', CRLF will be replaced by LF the next time Git touches it
 warning: in the working copy of 'src/utils/calculator.py', CRLF will be replaced by LF the next time Git touches it
 warning: in the working copy of 'tests/__init__.py', CRLF will be replaced by LF the next time Git touches it
+-files --others --exclude-standard
 .gitignore
-configs/default_config.json
-configs/oanda_config_example.json
+CODE_REVIEW_gui.py.md
+commit.ps1
+"e after review - improve backtest engine and DCA strategy\357\200\242"
+gui.py
 manifest.yml
+requirements.txt
 results/charts/.gitkeep
 results/logs/.gitkeep
 results/reports/.gitkeep
@@ -30,12 +34,11 @@ src/__init__.py
 src/backtest/__init__.py
 src/backtest/engine.py
 src/config/__init__.py
-src/config/strategy_config.py
 src/strategy/__init__.py
-src/strategy/dca_strategy.py
 src/strategy/rsi_handler.py
 src/utils/__init__.py
 src/utils/auto_data_downloader.py
 src/utils/calculator.py
-test_load_file.py
+tatus --short
 tests/__init__.py
+"ys; sys.path.insert(0, '.'); from gui import BacktestGUI; print('\342\234\205 Import gui.py th\303\240nh c\303\264ng')\357\200\242"

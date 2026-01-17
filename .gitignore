@@ -44,6 +44,9 @@ results/charts/*.jpg
 # data/raw/*.csv
 # data/raw/*.json
 
+# Test data files (should not be committed)
+data/lot_data.json
+
 # Credentials and secrets
 .env
 .env.local
@@ -62,6 +65,14 @@ t.yml
 t_*.py
 *_temp.*
 *.tmp
+
+# Prevent accidental command output files
+-files*
+*--modified
+*--others*
+*--exclude-standard*
+*ys;*
+*e after review*
 
 # Test output files
 test_*.py
