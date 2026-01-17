@@ -1,0 +1,313 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+    color: #212529;
+    line-height: 1.6;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+header h1 {
+    color: #212529;
+    font-size: 2em;
+}
+
+.card {
+    background: #ffffff;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card h2 {
+    margin-bottom: 15px;
+    color: #212529;
+    font-size: 1.3em;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #212529;
+}
+
+.radio-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.radio-group input[type="radio"] {
+    display: none;
+}
+
+.radio-group label {
+    padding: 8px 16px;
+    border: 2px solid #dee2e6;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: normal;
+}
+
+.radio-group input[type="radio"]:checked + label {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.btn-buy {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.btn-buy:hover {
+    background-color: #c3e6cb;
+}
+
+.radio-group input[type="radio"]:checked + .btn-buy {
+    background-color: #28a745;
+    color: white;
+    border-color: #28a745;
+}
+
+.btn-sell {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.btn-sell:hover {
+    background-color: #f5c6cb;
+}
+
+.radio-group input[type="radio"]:checked + .btn-sell {
+    background-color: #dc3545;
+    color: white;
+    border-color: #dc3545;
+}
+
+.input-row {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.input-group {
+    flex: 1;
+    min-width: 150px;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 0.9em;
+}
+
+.input-group input[type="number"] {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    font-size: 1em;
+}
+
+.info-text {
+    font-size: 0.85em;
+    color: #6c757d;
+    margin-top: 10px;
+    font-style: italic;
+}
+
+.header-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.button-group {
+    display: flex;
+    gap: 5px;
+}
+
+button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.95em;
+    transition: all 0.3s;
+    font-weight: 500;
+}
+
+.btn-action {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-action:hover {
+    background-color: #5a6268;
+}
+
+.btn-success {
+    background-color: #28a745;
+    color: white;
+    font-weight: bold;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+    font-weight: bold;
+    padding: 12px 24px;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.btn-primary:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+}
+
+.three-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.column {
+    display: flex;
+    flex-direction: column;
+}
+
+.column h3 {
+    font-size: 1em;
+    margin-bottom: 10px;
+    color: #212529;
+}
+
+#money-input {
+    width: 100%;
+    min-height: 200px;
+    padding: 10px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    font-family: 'Segoe UI', monospace;
+    font-size: 0.95em;
+    resize: vertical;
+}
+
+.table-container {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+table thead {
+    background-color: #e9ecef;
+    position: sticky;
+    top: 0;
+}
+
+table th {
+    padding: 10px;
+    text-align: center;
+    font-weight: bold;
+    border-bottom: 2px solid #dee2e6;
+}
+
+table td {
+    padding: 8px;
+    text-align: center;
+    border-bottom: 1px solid #dee2e6;
+}
+
+table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.file-label {
+    color: #28a745;
+    font-weight: 500;
+}
+
+.status-label {
+    color: #17a2b8;
+    font-style: italic;
+}
+
+.result-text {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 15px;
+    font-family: 'Consolas', monospace;
+    font-size: 0.95em;
+    white-space: pre-wrap;
+    max-height: 500px;
+    overflow-y: auto;
+    line-height: 1.8;
+}
+
+#tv_chart_container {
+    width: 100%;
+    min-height: 600px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+@media (max-width: 1200px) {
+    .three-columns {
+        grid-template-columns: 1fr;
+    }
+    
+    #tv_chart_container {
+        min-height: 400px;
+    }
+}
+
