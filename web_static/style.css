@@ -13,7 +13,7 @@ body {
 }
 
 .container {
-    max-width: 1400px;
+    max-width: 1800px;
     margin: 0 auto;
 }
 
@@ -217,15 +217,29 @@ button {
     color: #212529;
 }
 
-#money-input {
+.money-amount-input {
     width: 100%;
-    min-height: 200px;
-    padding: 10px;
+    padding: 8px;
     border: 1px solid #dee2e6;
     border-radius: 4px;
-    font-family: 'Segoe UI', monospace;
     font-size: 0.95em;
-    resize: vertical;
+    text-align: center;
+    background-color: #fff;
+}
+
+.money-amount-input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.stt-cell {
+    font-weight: 500;
+    color: #495057;
+}
+
+.amount-cell {
+    padding: 4px !important;
 }
 
 .table-container {
@@ -233,6 +247,11 @@ button {
     overflow-y: auto;
     border: 1px solid #dee2e6;
     border-radius: 4px;
+    background-color: #fff;
+}
+
+#money-input-table .table-container {
+    max-height: 400px;
 }
 
 table {
@@ -244,6 +263,7 @@ table thead {
     background-color: #e9ecef;
     position: sticky;
     top: 0;
+    z-index: 10;
 }
 
 table th {
@@ -251,6 +271,7 @@ table th {
     text-align: center;
     font-weight: bold;
     border-bottom: 2px solid #dee2e6;
+    color: #495057;
 }
 
 table td {
@@ -259,7 +280,19 @@ table td {
     border-bottom: 1px solid #dee2e6;
 }
 
+#money-input-table td {
+    padding: 4px 8px;
+}
+
 table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+#money-input-table tbody tr {
+    background-color: #fff;
+}
+
+#money-input-table tbody tr:nth-child(even) {
     background-color: #f8f9fa;
 }
 
@@ -299,6 +332,15 @@ table tbody tr:hover {
     border: 1px solid #dee2e6;
     border-radius: 4px;
     overflow: hidden;
+}
+
+/* Card biểu đồ mở rộng full width */
+.chart-card-fullwidth {
+    padding: 20px 10px;
+    margin-left: -10px;
+    margin-right: -10px;
+    width: calc(100% + 20px);
+    max-width: calc(100vw - 40px);
 }
 
 @media (max-width: 1200px) {

@@ -15,7 +15,7 @@ const rsiBreakInput = document.getElementById('rsi-break');
 const rsiEntryLabel = document.getElementById('rsi-entry-label');
 const rsiInfoText = document.getElementById('rsi-info');
 const rsiThresholdsDiv = document.getElementById('rsi-thresholds');
-const moneyInput = document.getElementById('money-input');
+const moneyInputTbody = document.getElementById('money-input-tbody');
 const moneyTbody = document.getElementById('money-tbody');
 const lotTbody = document.getElementById('lot-tbody');
 const btnApply = document.getElementById('btn-apply');
@@ -47,6 +47,7 @@ btnRun.addEventListener('click', onRunBacktest);
 // Initialize
 onRsiModeChange();
 onDirectionChange();
+initMoneyInputTable();
 
 function onDirectionChange() {
     const direction = document.querySelector('input[name="direction"]:checked').value;
@@ -81,19 +82,185 @@ function onRsiModeChange() {
     }
 }
 
-async function onApplyManualInput() {
-    const content = moneyInput.value.trim();
+function initMoneyInputTable() {
+    // Không tạo sẵn dòng, chỉ tạo khi người dùng nhập
+    // Tạo 1 dòng trống để người dùng có thể bắt đầu nhập
+    addNewInputRow();
     
-    if (!content) {
-        showStatus('⚠️ Vui lòng nhập số tiền vào lệnh trước khi bấm \'Áp dụng\'.', 'error');
-        return;
+    // Thêm event listener cho paste event trên bảng
+    moneyInputTbody.addEventListener('paste', handlePasteEvent);
+}
+
+function addNewInputRow() {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+        <td class="stt-cell"></td>
+        <td class="amount-cell">
+            <input type="number" class="money-amount-input" step="0.01" min="0" placeholder="">
+        </td>
+    `;
+    moneyInputTbody.appendChild(row);
+    
+    const input = row.querySelector('.money-amount-input');
+    input.addEventListener('input', handleMoneyInput);
+    input.addEventListener('blur', handleMoneyInput);
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            // Tạo dòng mới nếu đang ở dòng cuối
+            const rows = moneyInputTbody.querySelectorAll('tr');
+            if (row === rows[rows.length - 1]) {
+                addNewInputRow();
+                const nextInput = moneyInputTbody.querySelectorAll('.money-amount-input')[rows.length];
+                if (nextInput) nextInput.focus();
+            }
+        }
+    });
+    
+    return input;
+}
+
+function handleMoneyInput(e) {
+    const input = e.target;
+    const valueStr = input.value.trim();
+    const row = input.closest('tr');
+    
+    // Cập nhật STT lệnh cho tất cả các dòng
+    updateSTTCount();
+    
+    // Nếu người dùng nhập số (kể cả 0) và đang ở dòng cuối, tạo dòng mới
+    if (valueStr !== '' && !isNaN(parseFloat(valueStr))) {
+        const rows = moneyInputTbody.querySelectorAll('tr');
+        if (row === rows[rows.length - 1]) {
+            addNewInputRow();
+        }
+    }
+}
+
+function handlePasteEvent(e) {
+    e.preventDefault();
+    
+    // Lấy dữ liệu từ clipboard
+    const pastedData = (e.clipboardData || window.clipboardData).getData('text');
+    
+    if (!pastedData) return;
+    
+    // Parse dữ liệu: Excel thường paste với tab hoặc newline
+    const lines = pastedData.split(/\r?\n/).filter(line => line.trim() !== '');
+    const values = [];
+    
+    lines.forEach(line => {
+        // Xử lý nếu có tab (paste từ Excel cột)
+        const parts = line.split(/\t/);
+        parts.forEach(part => {
+            const trimmed = part.trim();
+            if (trimmed !== '') {
+                // Thử parse số
+                const num = parseFloat(trimmed.replace(/[,\s]/g, ''));
+                if (!isNaN(num)) {
+                    values.push(num);
+                }
+            }
+        });
+    });
+    
+    if (values.length === 0) return;
+    
+    // Tìm input đang focus hoặc input đầu tiên
+    const activeInput = document.activeElement;
+    let startRow = null;
+    let startIndex = 0;
+    
+    if (activeInput && activeInput.classList.contains('money-amount-input')) {
+        startRow = activeInput.closest('tr');
+        const allRows = Array.from(moneyInputTbody.querySelectorAll('tr'));
+        startIndex = allRows.indexOf(startRow);
     }
     
-    // Parse money values
-    const moneyValues = parseMoneyInput(content);
+    // Nếu không có row được chọn, bắt đầu từ row đầu tiên
+    if (startIndex === -1) {
+        startIndex = 0;
+        const allRows = moneyInputTbody.querySelectorAll('tr');
+        if (allRows.length > 0) {
+            startRow = allRows[0];
+        }
+    }
+    
+    // Đảm bảo có đủ dòng
+    const allRows = Array.from(moneyInputTbody.querySelectorAll('tr'));
+    while (allRows.length < startIndex + values.length) {
+        addNewInputRow();
+        const newRows = moneyInputTbody.querySelectorAll('tr');
+        allRows.push(newRows[newRows.length - 1]);
+    }
+    
+    // Paste giá trị vào các dòng
+    values.forEach((value, idx) => {
+        const rowIndex = startIndex + idx;
+        const row = allRows[rowIndex] || moneyInputTbody.querySelectorAll('tr')[rowIndex];
+        if (row) {
+            const input = row.querySelector('.money-amount-input');
+            if (input) {
+                input.value = value;
+                // Trigger input event để cập nhật STT
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        }
+    });
+    
+    // Cập nhật STT sau khi paste
+    updateSTTCount();
+    
+    // Focus vào input cuối cùng được paste
+    const lastIndex = startIndex + values.length - 1;
+    const lastRow = allRows[lastIndex] || moneyInputTbody.querySelectorAll('tr')[lastIndex];
+    if (lastRow) {
+        const lastInput = lastRow.querySelector('.money-amount-input');
+        if (lastInput) {
+            setTimeout(() => lastInput.focus(), 10);
+        }
+    }
+}
+
+function updateSTTCount() {
+    const rows = moneyInputTbody.querySelectorAll('tr');
+    let sttCount = 0;
+    
+    rows.forEach((row) => {
+        const input = row.querySelector('.money-amount-input');
+        const sttCell = row.querySelector('.stt-cell');
+        const value = input.value.trim();
+        
+        // Nếu có giá trị (kể cả 0), đếm STT
+        if (value !== '' && !isNaN(parseFloat(value))) {
+            sttCount++;
+            sttCell.textContent = sttCount;
+        } else {
+            sttCell.textContent = '';
+        }
+    });
+}
+
+function getMoneyValuesFromTable() {
+    const values = [];
+    const rows = moneyInputTbody.querySelectorAll('tr');
+    
+    rows.forEach(row => {
+        const input = row.querySelector('.money-amount-input');
+        const value = parseFloat(input.value) || 0;
+        if (value > 0) {
+            values.push(value);
+        }
+    });
+    
+    return values;
+}
+
+async function onApplyManualInput() {
+    const moneyValues = getMoneyValuesFromTable();
     
     if (moneyValues.length === 0) {
-        showStatus('⚠️ Không có dữ liệu số tiền để xử lý. Kiểm tra lại nội dung đã paste.', 'error');
+        showStatus('⚠️ Vui lòng nhập số tiền vào lệnh trước khi bấm \'Áp dụng\'.', 'error');
         return;
     }
     
@@ -135,29 +302,7 @@ async function onApplyManualInput() {
     }
 }
 
-function parseMoneyInput(content) {
-    // Normalize: replace all separators with comma
-    let normalized = content.replace(/[\n\r\t;]+/g, ',');
-    normalized = normalized.replace(/[,\s]+/g, ',');
-    normalized = normalized.trim().replace(/^,|,$/g, '');
-    
-    if (!normalized) return [];
-    
-    const values = [];
-    const parts = normalized.split(',');
-    
-    for (const part of parts) {
-        const clean = part.trim().replace(/[,\s\t\n\r]/g, '');
-        if (!clean) continue;
-        
-        const num = parseFloat(clean);
-        if (!isNaN(num) && num >= 0) {
-            values.push(num);
-        }
-    }
-    
-    return values;
-}
+// parseMoneyInput function removed - now using getMoneyValuesFromTable()
 
 function updateTables(lotData) {
     moneyTbody.innerHTML = '';
@@ -273,12 +418,12 @@ async function onRunBacktest() {
         
         displayResults(data);
         
-        // Tự động hiển thị biểu đồ nếu có chart_filename
-        if (data.chart_filename) {
-            await displayChart(data.chart_filename);
+        // Vẽ markers trên TradingView chart
+        if (data.events && data.events.length > 0) {
+            drawBacktestMarkers(data.events);
         }
         
-        showStatus('✅ Backtest hoàn thành! Biểu đồ đã được vẽ tự động.', 'success');
+        showStatus('✅ Backtest hoàn thành!', 'success');
     } catch (error) {
         showStatus(`❌ Lỗi: ${error.message}`, 'error');
         resultText.textContent = `❌ Lỗi: ${error.message}`;
@@ -321,41 +466,6 @@ function displayResults(data) {
     resultText.textContent = result;
 }
 
-async function displayChart(chartFilename) {
-    try {
-        const chartUrl = `${API_BASE}/chart/${chartFilename}`;
-        
-        // Tạo hoặc cập nhật section biểu đồ
-        let chartSection = document.getElementById('chart-section');
-        if (!chartSection) {
-            chartSection = document.createElement('section');
-            chartSection.id = 'chart-section';
-            chartSection.className = 'card';
-            chartSection.innerHTML = `
-                <h2>📊 Biểu đồ Backtest</h2>
-                <div style="text-align: center; margin: 20px 0;">
-                    <img id="chart-image" src="${chartUrl}" alt="Backtest Chart" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px;">
-                </div>
-            `;
-            
-            // Chèn vào sau section kết quả
-            const resultsSection = document.querySelector('section:has(#result-text)');
-            if (resultsSection) {
-                resultsSection.insertAdjacentElement('afterend', chartSection);
-            } else {
-                document.querySelector('.container').appendChild(chartSection);
-            }
-        } else {
-            // Cập nhật ảnh nếu section đã tồn tại
-            const chartImage = document.getElementById('chart-image');
-            if (chartImage) {
-                chartImage.src = chartUrl;
-            }
-        }
-    } catch (error) {
-        console.error('Lỗi khi hiển thị biểu đồ:', error);
-    }
-}
 
 function onSaveLotData() {
     if (lotData.length === 0) {
@@ -393,7 +503,40 @@ function onLoadLotData() {
                 const data = JSON.parse(event.target.result);
                 const moneyAmounts = data.money_amounts || [];
                 
-                moneyInput.value = moneyAmounts.join('\n');
+                // Clear all existing rows
+                moneyInputTbody.innerHTML = '';
+                
+                // Create rows for each amount
+                moneyAmounts.forEach((amount) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="stt-cell"></td>
+                        <td class="amount-cell">
+                            <input type="number" class="money-amount-input" step="0.01" min="0" value="${amount}">
+                        </td>
+                    `;
+                    moneyInputTbody.appendChild(row);
+                    
+                    const inputField = row.querySelector('.money-amount-input');
+                    inputField.addEventListener('input', handleMoneyInput);
+                    inputField.addEventListener('blur', handleMoneyInput);
+                    inputField.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const rows = moneyInputTbody.querySelectorAll('tr');
+                            if (row === rows[rows.length - 1]) {
+                                addNewInputRow();
+                                const nextInput = moneyInputTbody.querySelectorAll('.money-amount-input')[rows.length];
+                                if (nextInput) nextInput.focus();
+                            }
+                        }
+                    });
+                });
+                
+                // Add one empty row at the end
+                addNewInputRow();
+                
+                updateSTTCount();
                 onApplyManualInput();
                 
                 showStatus(`✅ Đã tải ${moneyAmounts.length} entry`, 'success');
@@ -431,6 +574,12 @@ function initTradingViewChart() {
         console.warn('TradingView library not loaded yet, retrying...');
         setTimeout(initTradingViewChart, 500);
         return;
+    }
+
+    // Hide loading indicator
+    const loadingEl = document.getElementById('tv_loading');
+    if (loadingEl) {
+        loadingEl.style.display = 'none';
     }
 
     if (tvWidget) {
@@ -472,9 +621,168 @@ function initTradingViewChart() {
     console.log('TradingView chart initialized');
 }
 
-// Initialize chart when page loads
+// Initialize chart with lazy loading - only load when visible or after a delay
+let chartInitAttempted = false;
+
+function initChartWhenReady() {
+    if (chartInitAttempted) return;
+    
+    // Check if TradingView library is loaded
+    if (typeof TradingView === 'undefined' || typeof BacktestDatafeed === 'undefined') {
+        // Retry after a short delay
+        setTimeout(initChartWhenReady, 500);
+        return;
+    }
+    
+    chartInitAttempted = true;
+    initTradingViewChart();
+}
+
+// Lazy load chart - only initialize when:
+// 1. User scrolls to chart section (Intersection Observer)
+// 2. Or after page is fully loaded (fallback)
 window.addEventListener('DOMContentLoaded', () => {
-    // Wait a bit for all scripts to load
-    setTimeout(initTradingViewChart, 1000);
+    const chartContainer = document.getElementById('tv_chart_container');
+    if (!chartContainer) return;
+    
+    // Use Intersection Observer to load chart only when visible
+    if ('IntersectionObserver' in window) {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting && !chartInitAttempted) {
+                    initChartWhenReady();
+                    observer.disconnect();
+                }
+            });
+        }, {
+            rootMargin: '100px' // Start loading 100px before chart is visible
+        });
+        
+        observer.observe(chartContainer);
+        
+        // Fallback: Load after 3 seconds even if not visible
+        setTimeout(() => {
+            if (!chartInitAttempted) {
+                initChartWhenReady();
+                observer.disconnect();
+            }
+        }, 3000);
+    } else {
+        // Fallback for browsers without IntersectionObserver
+        setTimeout(initChartWhenReady, 2000);
+    }
 });
+
+// Function to draw backtest markers on TradingView chart
+function drawBacktestMarkers(events) {
+    if (!tvWidget) {
+        console.warn('TradingView widget not initialized yet');
+        // Retry after a short delay
+        setTimeout(() => drawBacktestMarkers(events), 1000);
+        return;
+    }
+
+    // Wait for chart to be ready
+    tvWidget.onChartReady(() => {
+        try {
+            const chart = tvWidget.activeChart();
+            if (!chart) {
+                console.warn('Chart not ready');
+                return;
+            }
+
+            // Clear existing markers (optional - comment out if you want to keep previous markers)
+            // chart.removeAllShapes();
+
+            // Draw markers for each event
+            events.forEach((event, index) => {
+                try {
+                    // Convert timestamp to Unix timestamp (seconds)
+                    let timestamp;
+                    if (typeof event.timestamp === 'string') {
+                        // ISO string format
+                        timestamp = Math.floor(new Date(event.timestamp).getTime() / 1000);
+                    } else if (event.timestamp instanceof Date) {
+                        timestamp = Math.floor(event.timestamp.getTime() / 1000);
+                    } else if (typeof event.timestamp === 'number') {
+                        // Already a timestamp, check if it's in seconds or milliseconds
+                        timestamp = event.timestamp > 1e12 ? Math.floor(event.timestamp / 1000) : event.timestamp;
+                    } else {
+                        console.warn('Invalid timestamp format:', event.timestamp);
+                        return;
+                    }
+
+                    const price = parseFloat(event.price);
+                    if (isNaN(price)) {
+                        console.warn('Invalid price:', event.price);
+                        return;
+                    }
+
+                    let shapeType, color, text, markerSymbol;
+
+                    if (event.type === 'entry') {
+                        // Entry marker: use text with emoji/unicode for BUY/SELL
+                        shapeType = 'text';
+                        if (event.direction === 'BUY') {
+                            color = '#10b981'; // Green
+                            markerSymbol = '▲'; // Up arrow
+                            text = `▲ Entry #${event.entry_number || ''} BUY`;
+                        } else if (event.direction === 'SELL') {
+                            color = '#ef4444'; // Red
+                            markerSymbol = '▼'; // Down arrow
+                            text = `▼ Entry #${event.entry_number || ''} SELL`;
+                        } else {
+                            color = '#6b7280'; // Gray
+                            markerSymbol = '●';
+                            text = `● Entry #${event.entry_number || ''}`;
+                        }
+                    } else if (event.type === 'exit') {
+                        // Exit marker: X symbol
+                        shapeType = 'text';
+                        color = '#3b82f6'; // Blue
+                        markerSymbol = '✕';
+                        text = `✕ Exit #${event.entry_count || ''}`;
+                    } else if (event.type === 'break') {
+                        // Break marker: warning symbol
+                        shapeType = 'text';
+                        color = '#f59e0b'; // Orange/Amber
+                        markerSymbol = '⚠';
+                        text = `⚠ Break #${event.entry_count || ''}`;
+                    } else {
+                        // Unknown event type
+                        return;
+                    }
+
+                    // Create text marker with symbol
+                    chart.createShape(
+                        { time: timestamp, price: price },
+                        {
+                            shape: 'text',
+                            lock: true,
+                            disableSelection: true,
+                            disableSave: false,
+                            overrides: {
+                                text: markerSymbol,
+                                fontsize: 16,
+                                textcolor: color,
+                                bold: true,
+                            },
+                        }
+                    ).catch(err => {
+                        console.warn(`Failed to create marker for event ${index}:`, err);
+                        // Fallback: try with simpler approach
+                        console.log(`Event ${index} details:`, { type: event.type, timestamp, price });
+                    });
+
+                } catch (error) {
+                    console.error(`Error processing event ${index}:`, error);
+                }
+            });
+
+            console.log(`✅ Đã vẽ ${events.length} markers trên biểu đồ`);
+        } catch (error) {
+            console.error('Error drawing markers:', error);
+        }
+    });
+}
 

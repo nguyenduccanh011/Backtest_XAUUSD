@@ -71,7 +71,19 @@
             <div class="three-columns">
                 <div class="column">
                     <h3>💰 Nhập số tiền</h3>
-                    <textarea id="money-input" placeholder="Paste số tiền vào đây&#10;(mỗi số một dòng)&#10;&#10;Lưu ý:&#10;- Entry 1-9: Mặc định chỉ đếm&#10;- Entry 10-40: Vào lệnh nếu > 0&#10;- Nhập 0 = chỉ đếm, không vào lệnh"></textarea>
+                    <div class="table-container">
+                        <table id="money-input-table">
+                            <thead>
+                                <tr>
+                                    <th>STT lệnh</th>
+                                    <th>Số tiền (USD)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="money-input-tbody">
+                                <!-- Rows will be added dynamically when user inputs -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
                 <div class="column">
                     <h3>💵 Số tiền vào lệnh (USD)</h3>
@@ -127,18 +139,23 @@
         </section>
 
         <!-- TradingView Chart Section -->
-        <section class="card">
+        <section class="card chart-card-fullwidth">
             <h2>📊 Biểu đồ giá XAUUSD</h2>
-            <div id="tv_chart_container" style="width: 100%; height: 600px;"></div>
+            <div id="tv_chart_container" style="width: 100%; height: 600px; position: relative;">
+                <div id="tv_loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #666;">
+                    <div style="font-size: 18px; margin-bottom: 10px;">⏳ Đang tải biểu đồ...</div>
+                    <div style="font-size: 14px;">Vui lòng đợi trong giây lát</div>
+                </div>
+            </div>
         </section>
     </div>
 
-    <!-- TradingView Library -->
-    <script type="text/javascript" src="/charting_library/charting_library.standalone.js"></script>
+    <!-- TradingView Library - Load with defer to not block page rendering -->
+    <script type="text/javascript" src="/charting_library/charting_library.standalone.js" defer></script>
     <!-- Custom Datafeed -->
-    <script type="text/javascript" src="/static/tv_datafeed.js"></script>
+    <script type="text/javascript" src="/static/tv_datafeed.js" defer></script>
     <!-- App Script -->
-    <script src="/static/app.js"></script>
+    <script src="/static/app.js" defer></script>
 </body>
 </html>
 

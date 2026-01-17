@@ -38,6 +38,35 @@ CONFIG_PATH = Path("configs/default_config.json")
 
 app = FastAPI(title="Backtest XAUUSD Web App")
 
+
+def convert_events_to_serializable(engine):
+    """Convert engine events to JSON-serializable format"""
+    events = []
+    if engine and hasattr(engine, 'events'):
+        for event in engine.events:
+            event_dict = {
+                'type': event.get('type'),
+                'timestamp': event.get('timestamp'),
+                'price': event.get('price'),
+                'rsi': event.get('rsi'),
+            }
+            # Add optional fields
+            if 'entry_number' in event:
+                event_dict['entry_number'] = event['entry_number']
+            if 'direction' in event:
+                event_dict['direction'] = event['direction']
+            if 'should_trade' in event:
+                event_dict['should_trade'] = event['should_trade']
+            if 'entry_count' in event:
+                event_dict['entry_count'] = event['entry_count']
+            # Convert timestamp to ISO string if it's a pandas Timestamp
+            if hasattr(event.get('timestamp'), 'isoformat'):
+                event_dict['timestamp'] = event['timestamp'].isoformat()
+            elif isinstance(event.get('timestamp'), pd.Timestamp):
+                event_dict['timestamp'] = event['timestamp'].isoformat()
+            events.append(event_dict)
+    return events
+
 # CORS middleware for TradingView
 app.add_middleware(
     CORSMiddleware,
@@ -139,8 +168,8 @@ async def run_backtest(request: BacktestRequest):
                 direction_mode=direction,
             )
             
-            # Tự động vẽ biểu đồ
-            chart_filename = await plot_chart_auto(engine, direction)
+            # Convert events to serializable format
+            events = convert_events_to_serializable(engine)
             
             return {
                 "success": True,
@@ -149,7 +178,7 @@ async def run_backtest(request: BacktestRequest):
                 "best_sell_threshold": best_sell,
                 "summary": result.get('summary', {}),
                 "all_results": result.get('all_results', []),
-                "chart_filename": chart_filename,
+                "events": events,
             }
         else:
             # Chế độ thủ công
@@ -173,14 +202,14 @@ async def run_backtest(request: BacktestRequest):
                 break_rsi=request.break_rsi,
             )
             
-            # Tự động vẽ biểu đồ
-            chart_filename = await plot_chart_auto(engine, direction)
+            # Convert events to serializable format
+            events = convert_events_to_serializable(engine)
             
             return {
                 "success": True,
                 "optimized": False,
                 "summary": summary,
-                "chart_filename": chart_filename,
+                "events": events,
             }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -259,15 +288,6 @@ async def upload_data_file(file: UploadFile = File(...)):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/api/chart/{chart_filename}")
-async def get_chart(chart_filename: str):
-    """Lấy file biểu đồ đã vẽ"""
-    chart_path = Path("results/charts") / chart_filename
-    if chart_path.exists():
-        return FileResponse(chart_path)
-    raise HTTPException(status_code=404, detail="Chart not found")
 
 
 async def plot_chart_auto(engine, direction: str = "BUY"):

@@ -513,9 +513,36 @@ class ChartVisualizer:
                 # Nếu không chỉnh được linewidth, không sao - chỉ là styling
                 print(f"⚠️ Không thể chỉnh linewidth cho RSI: {e}")
         
-        # Vẽ entry markers với styling đẹp hơn
+        # Vẽ entry markers với styling đẹp hơn và text labels
         buy_marker_drawn = False
         sell_marker_drawn = False
+        entry_info_dict = {}  # Lưu thông tin entry để hiển thị text
+        
+        # Thu thập thông tin entry từ events
+        for event in self.events:
+            if event['type'] == 'entry':
+                timestamp = event['timestamp']
+                # Chuyển đổi timestamp nếu cần
+                if self.index_mapping is not None:
+                    if timestamp in self.index_mapping:
+                        timestamp = self.index_mapping[timestamp]
+                    else:
+                        continue
+                else:
+                    if isinstance(plot_data.index, pd.DatetimeIndex):
+                        if not isinstance(timestamp, pd.Timestamp):
+                            try:
+                                timestamp = pd.to_datetime(timestamp)
+                            except (ValueError, TypeError):
+                                continue
+                
+                if timestamp in plot_data.index:
+                    entry_info_dict[timestamp] = {
+                        'entry_number': event.get('entry_number', 0),
+                        'direction': event.get('direction', 'BUY'),
+                        'should_trade': event.get('should_trade', False)
+                    }
+        
         for ts, price, color, size in entry_markers:
             if ts in plot_data.index:
                 marker_color = '#10b981' if color == 'green' else '#ef4444'
@@ -528,53 +555,174 @@ class ChartVisualizer:
                     label = 'Entry SELL'
                     sell_marker_drawn = True
                 
+                # Vẽ marker
                 ax_price.scatter(
                     ts,
                     price,
                     c=marker_color,
-                    s=size * 1.5,  # Tăng kích thước một chút
+                    s=size * 2.0,  # Tăng kích thước để dễ nhìn hơn
                     marker=marker_style,
                     edgecolors='#ffffff',
-                    linewidths=2,
+                    linewidths=2.5,
                     zorder=10,
-                    alpha=0.9,
+                    alpha=0.95,
                     label=label if label else ''
                 )
+                
+                # Thêm text label với entry number nếu có
+                if ts in entry_info_dict:
+                    entry_info = entry_info_dict[ts]
+                    entry_num = entry_info['entry_number']
+                    should_trade = entry_info.get('should_trade', False)
+                    # Chỉ hiển thị text cho các entry quan trọng (entry số <= 20 hoặc should_trade=True)
+                    if entry_num <= 20 or should_trade:
+                        text_label = f"E{entry_num}"
+                        if should_trade:
+                            text_label += "💰"
+                        # Đặt text phía trên marker cho BUY, phía dưới cho SELL
+                        y_offset = (plot_data['High'].max() - plot_data['Low'].min()) * 0.02 if color == 'green' else -(plot_data['High'].max() - plot_data['Low'].min()) * 0.02
+                        ax_price.annotate(
+                            text_label,
+                            xy=(ts, price),
+                            xytext=(0, y_offset),
+                            textcoords='offset points',
+                            fontsize=8,
+                            fontweight='bold',
+                            color=marker_color,
+                            ha='center',
+                            va='bottom' if color == 'green' else 'top',
+                            bbox=dict(boxstyle='round,pad=0.3', facecolor='white', edgecolor=marker_color, alpha=0.8, linewidth=1),
+                            zorder=11
+                        )
         
-        # Vẽ exit markers với styling đẹp hơn
+        # Vẽ exit markers với styling đẹp hơn và text labels
         exit_count = 0
+        exit_info_dict = {}  # Lưu thông tin exit
+        
+        # Thu thập thông tin exit từ events
+        for event in self.events:
+            if event['type'] == 'exit':
+                timestamp = event['timestamp']
+                # Chuyển đổi timestamp nếu cần
+                if self.index_mapping is not None:
+                    if timestamp in self.index_mapping:
+                        timestamp = self.index_mapping[timestamp]
+                    else:
+                        continue
+                else:
+                    if isinstance(plot_data.index, pd.DatetimeIndex):
+                        if not isinstance(timestamp, pd.Timestamp):
+                            try:
+                                timestamp = pd.to_datetime(timestamp)
+                            except (ValueError, TypeError):
+                                continue
+                
+                if timestamp in plot_data.index:
+                    exit_info_dict[timestamp] = {
+                        'entry_count': event.get('entry_count', 0),
+                        'was_break': event.get('was_break', False)
+                    }
+        
         for ts, price in exit_dict.items():
             if ts in plot_data.index:
                 ax_price.scatter(
                     ts,
                     price,
                     c='#f59e0b',
-                    s=200,
+                    s=250,  # Tăng kích thước
                     marker='X',
                     edgecolors='#ffffff',
-                    linewidths=2,
+                    linewidths=2.5,
                     zorder=10,
-                    alpha=0.9,
+                    alpha=0.95,
                     label='Exit' if exit_count == 0 else ''
                 )
+                
+                # Thêm text label
+                if ts in exit_info_dict:
+                    exit_info = exit_info_dict[ts]
+                    entry_count = exit_info.get('entry_count', 0)
+                    text_label = f"Exit (E{entry_count})"
+                    y_offset = (plot_data['High'].max() - plot_data['Low'].min()) * 0.03
+                    ax_price.annotate(
+                        text_label,
+                        xy=(ts, price),
+                        xytext=(0, y_offset),
+                        textcoords='offset points',
+                        fontsize=8,
+                        fontweight='bold',
+                        color='#f59e0b',
+                        ha='center',
+                        va='bottom',
+                        bbox=dict(boxstyle='round,pad=0.3', facecolor='white', edgecolor='#f59e0b', alpha=0.8, linewidth=1),
+                        zorder=11
+                    )
+                
                 exit_count += 1
         
-        # Vẽ break markers (stop loss) với styling đẹp hơn
+        # Vẽ break markers (stop loss) với styling đẹp hơn và text labels
         break_count = 0
+        break_info_dict = {}  # Lưu thông tin break
+        
+        # Thu thập thông tin break từ events
+        for event in self.events:
+            if event['type'] == 'break':
+                timestamp = event['timestamp']
+                # Chuyển đổi timestamp nếu cần
+                if self.index_mapping is not None:
+                    if timestamp in self.index_mapping:
+                        timestamp = self.index_mapping[timestamp]
+                    else:
+                        continue
+                else:
+                    if isinstance(plot_data.index, pd.DatetimeIndex):
+                        if not isinstance(timestamp, pd.Timestamp):
+                            try:
+                                timestamp = pd.to_datetime(timestamp)
+                            except (ValueError, TypeError):
+                                continue
+                
+                if timestamp in plot_data.index:
+                    break_info_dict[timestamp] = {
+                        'entry_count': event.get('entry_count', 0),
+                        'direction': event.get('direction', 'BUY')
+                    }
+        
         for ts, info in break_dict.items():
             if ts in plot_data.index:
                 ax_price.scatter(
                     ts,
                     info['price'],
                     c='#9333ea',  # Purple color for break/stop loss
-                    s=220,
+                    s=280,  # Tăng kích thước
                     marker='*',  # Star marker for break
                     edgecolors='#ffffff',
-                    linewidths=2,
+                    linewidths=2.5,
                     zorder=10,
-                    alpha=0.9,
+                    alpha=0.95,
                     label='Break/Stop Loss' if break_count == 0 else ''
                 )
+                
+                # Thêm text label
+                if ts in break_info_dict:
+                    break_info = break_info_dict[ts]
+                    entry_count = break_info.get('entry_count', 0)
+                    text_label = f"Break (E{entry_count})"
+                    y_offset = -(plot_data['High'].max() - plot_data['Low'].min()) * 0.03
+                    ax_price.annotate(
+                        text_label,
+                        xy=(ts, info['price']),
+                        xytext=(0, y_offset),
+                        textcoords='offset points',
+                        fontsize=8,
+                        fontweight='bold',
+                        color='#9333ea',
+                        ha='center',
+                        va='top',
+                        bbox=dict(boxstyle='round,pad=0.3', facecolor='white', edgecolor='#9333ea', alpha=0.8, linewidth=1),
+                        zorder=11
+                    )
+                
                 break_count += 1
         
         # Cải thiện legend
